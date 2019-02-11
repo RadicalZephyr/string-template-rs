@@ -1,14 +1,115 @@
-pub struct St {}
+use std::collections::HashMap;
 
-impl St {
-    pub fn new(_template: impl Into<String>) -> St {
-        St {}
+#[derive(Clone, Debug, PartialEq)]
+enum Expr {
+    Literal(String),
+    Attribute(String),
+}
+
+struct CompiledSt {
+    template: String,
+    // These should really be a vec of `&'a str`, where 'a is the
+    // lifetime of _this struct_. But I don't know how to correctly
+    // name that lifetime, or if it's even possible. It might not even
+    // have meaning to try and say that, since if this vec or an item
+    // in it was moved outside of this struct then the lifetimes do
+    // matter.
+    expressions: Vec<Expr>,
+}
+
+impl CompiledSt {
+    pub fn compile(template: impl Into<String>) -> CompiledSt {
+        enum State {
+            Literal,
+            Expression,
+        };
+
+        let template = template.into();
+        let mut expressions = vec![];
+
+        let mut state = State::Literal;
+        let mut start = 0;
+        let mut i = 0;
+        for c in template.bytes() {
+            match c {
+                b'<' => {
+                    expressions.push(Expr::Literal(template[start..i].into()));
+                    state = State::Expression;
+                    i += 1;
+                    start = i;
+                }
+                b'>' => {
+                    expressions.push(Expr::Attribute(template[start..i].into()));
+                    state = State::Literal;
+                    i += 1;
+                    start = i;
+                }
+                _ => i += 1,
+            }
+        }
+        match state {
+            State::Literal => {
+                expressions.push(Expr::Literal(template[start..i].into()));
+            }
+            State::Expression => panic!("encountered unfinished template expression"),
+        }
+
+        println!("{:?}", expressions);
+        CompiledSt {
+            template,
+            expressions,
+        }
     }
 
-    pub fn add(&mut self, _name: impl Into<String>, _value: impl Into<String>) {}
+    pub fn render(&self, attributes: &Attributes) -> String {
+        let mut out = String::new();
+        for expr in &self.expressions {
+            match expr {
+                Expr::Literal(s) => out.push_str(s),
+                Expr::Attribute(name) => {
+                    out.push_str(attributes.get(name).unwrap_or(&String::new()))
+                }
+            }
+        }
+        out
+    }
+}
+
+struct Attributes(HashMap<String, String>);
+
+impl Attributes {
+    pub fn new() -> Attributes {
+        Attributes(HashMap::new())
+    }
+
+    pub fn insert(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.0.insert(name.into(), value.into());
+    }
+
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&String> {
+        self.0.get(name.as_ref())
+    }
+}
+
+pub struct St {
+    imp: CompiledSt,
+    attributes: Attributes,
+}
+
+impl St {
+    pub fn new(template: impl Into<String>) -> St {
+        St {
+            imp: CompiledSt::compile(template),
+            attributes: Attributes::new(),
+        }
+    }
+
+    pub fn add(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.attributes.insert(name, value);
+    }
 
     pub fn render(&self) -> String {
-        String::new()
+        self.imp.render(&self.attributes)
     }
 }
 
