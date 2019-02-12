@@ -6,6 +6,7 @@ enum Expr {
     Attribute(String),
 }
 
+#[allow(dead_code)]
 struct CompiledSt {
     template: String,
     // These should really be a vec of `&'a str`, where 'a is the
