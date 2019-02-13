@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+mod parser;
+
 #[derive(Clone, Debug, PartialEq)]
 enum Expr {
     Literal(String),
