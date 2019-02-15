@@ -17,7 +17,7 @@ struct StaticStGroup {
     visibility: Visibility,
     group_name: Ident,
     brace_token: token::Brace,
-    group: Punctuated<StaticSt, Token![;]>,
+    templates: Punctuated<StaticSt, Token![;]>,
 }
 
 impl fmt::Debug for StaticStGroup {
@@ -42,11 +42,11 @@ impl Parse for StaticStGroup {
         let group_name = input.parse()?;
         let content;
         let brace_token = braced!(content in input);
-        let group = content.parse_terminated(StaticSt::parse)?;
+        let templates = content.parse_terminated(StaticSt::parse)?;
         Ok(StaticStGroup {
             visibility,
             group_name,
-            group,
+            templates,
             brace_token,
         })
     }
@@ -57,7 +57,7 @@ struct StaticSt {
     name: Ident,
     paren_token: token::Paren,
     formal_args: Punctuated<Ident, Token![,]>,
-    template: Template,
+    template_body: TemplateBody,
 }
 
 impl fmt::Debug for StaticSt {
@@ -81,38 +81,38 @@ impl Parse for StaticSt {
             name: input.parse()?,
             paren_token: parenthesized!(content in input),
             formal_args: content.parse_terminated(Ident::parse)?,
-            template: {
+            template_body: {
                 input.parse::<Token![::]>()?;
                 input.parse::<Token![=]>()?;
                 input.parse::<Token![<<]>()?;
-                let template = input.parse()?;
+                let template_body = input.parse()?;
                 input.parse::<Token![>>]>()?;
-                template
+                template_body
             },
         })
     }
 }
 
 #[derive(Clone)]
-struct Template {
+struct TemplateBody {
     foo: Ident,
 }
 
-impl fmt::Debug for Template {
+impl fmt::Debug for TemplateBody {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Template").finish()
+        f.debug_struct("TemplateBody").finish()
     }
 }
 
-impl cmp::PartialEq for Template {
+impl cmp::PartialEq for TemplateBody {
     fn eq(&self, _other: &Self) -> bool {
         false
     }
 }
 
-impl Parse for Template {
+impl Parse for TemplateBody {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Template {
+        Ok(TemplateBody {
             foo: input.parse()?,
         })
     }
@@ -135,12 +135,12 @@ pub fn st_group(input: TokenStream) -> TokenStream {
         visibility,
         group_name,
         brace_token,
-        group,
+        templates,
     } = parse_macro_input!(input as StaticStGroup);
 
     let ty = quote! { ::string_template::StGroup };
 
-    let init = init_for_group(&brace_token, group);
+    let init = init_for_group(&brace_token, templates);
 
     let init_ptr = quote_spanned! { brace_token.span =>
                                Box::into_raw(Box::new(#init))
@@ -189,7 +189,7 @@ mod tests {
                 brace_token: token::Brace {
                     span: Span::call_site()
                 },
-                group: Punctuated::new(),
+                templates: Punctuated::new(),
             },
             parse_group("static ref group_a {\n a() ::= <<foo>>\n }")
         );
