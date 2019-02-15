@@ -5,3 +5,10 @@ st_group! {
         a() ::= <<foo>>
     }
 }
+
+#[test]
+fn parse_literal_group() {
+    let a = simple_bracket
+        .get("a")
+        .expect("unexpectedly failed to find templat a");
+}
