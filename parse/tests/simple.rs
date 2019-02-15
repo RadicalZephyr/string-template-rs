@@ -8,7 +8,7 @@ st_group! {
 
 #[test]
 fn parse_literal_group() {
-    let a = simple_bracket
+    let _a = simple_bracket
         .get("a")
-        .expect("unexpectedly failed to find templat a");
+        .expect("unexpectedly failed to find template a");
 }
