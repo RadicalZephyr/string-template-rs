@@ -318,15 +318,15 @@ impl Parse for TemplateBody {
     }
 }
 
+pub fn parse_group(template: &'static str) -> StaticStGroup {
+    syn::parse_str(template).expect("unexpected parsing failure")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use proc_macro2::Span;
-
-    fn parse_group(template: &'static str) -> StaticStGroup {
-        syn::parse_str(template).expect("unexpected parsing failure")
-    }
 
     #[test]
     fn parse_no_arg_template() {
