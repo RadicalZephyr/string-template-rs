@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 string-template = { version = "0.1", path = ".." }
-proc-macro2 = "0.4"
 quote = "0.6"
 syn = "0.15"
 
