@@ -111,8 +111,8 @@ impl Attributes {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct St {
-    imp: CompiledSt,
-    attributes: Attributes,
+    pub imp: CompiledSt,
+    pub attributes: Attributes,
 }
 
 impl St {

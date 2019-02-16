@@ -5,7 +5,9 @@ extern crate proc_macro;
 use std::{cmp, fmt};
 
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 
+use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
 use syn::parse::{Parse, ParseStream, Result};
@@ -52,6 +54,44 @@ impl Parse for StaticStGroup {
     }
 }
 
+impl ToTokens for StaticStGroup {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let ty = quote! { ::string_template::StGroup };
+        let brace_span: Span = self.brace_token.span;
+        let templates = &self.templates;
+        let init = quote_spanned! { brace_span =>
+                                    {
+                                        let mut templates = ::std::collections::HashMap::new();
+                                        #( #templates )*
+                                        ::string_template::StGroup::new(templates)
+                                    }
+        };
+        let init_ptr = quote_spanned! { self.brace_token.span =>
+                                   Box::into_raw(Box::new(#init))
+        };
+        let visibility = &self.visibility;
+        let group_name = &self.group_name;
+        let expanded = quote! {
+            #visibility struct #group_name;
+
+            impl ::std::ops::Deref for #group_name {
+                type Target = #ty;
+
+                fn deref(&self) -> &#ty {
+                    static ONCE: ::std::sync::Once = ::std::sync::ONCE_INIT;
+                    static mut VALUE: *mut #ty = 0 as *mut #ty;
+
+                    unsafe {
+                        ONCE.call_once(|| VALUE = #init_ptr);
+                        &*VALUE
+                    }
+                }
+            }
+        };
+        tokens.extend(expanded);
+    }
+}
+
 #[derive(Clone)]
 struct StaticSt {
     name: Ident,
@@ -76,20 +116,37 @@ impl cmp::PartialEq for StaticSt {
 
 impl Parse for StaticSt {
     fn parse(input: ParseStream) -> Result<Self> {
+        let name = input.parse()?;
         let content;
+        let paren_token = parenthesized!(content in input);
+        let formal_args = content.parse_terminated(Ident::parse)?;
+
+        input.parse::<Token![::]>()?;
+        input.parse::<Token![=]>()?;
+
+        input.parse::<Token![<<]>()?;
+        let template_body = input.parse()?;
+        input.parse::<Token![>>]>()?;
+
         Ok(StaticSt {
-            name: input.parse()?,
-            paren_token: parenthesized!(content in input),
-            formal_args: content.parse_terminated(Ident::parse)?,
-            template_body: {
-                input.parse::<Token![::]>()?;
-                input.parse::<Token![=]>()?;
-                input.parse::<Token![<<]>()?;
-                let template_body = input.parse()?;
-                input.parse::<Token![>>]>()?;
-                template_body
-            },
+            name,
+            paren_token,
+            formal_args,
+            template_body,
         })
+    }
+}
+
+impl ToTokens for StaticSt {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = format!(r#""{}""#, &self.name);
+        let expanded = quote! {
+            templates.insert(#name, ::string_template::St {
+                imp: ::string_template::CompiledSt::new("#template_body", vec![]),
+                attributes: ::string_template::Attributes::new(),
+            });
+        };
+        tokens.extend(expanded);
     }
 }
 
@@ -118,52 +175,10 @@ impl Parse for TemplateBody {
     }
 }
 
-fn init_for_group(
-    brace_token: &token::Brace,
-    group: Punctuated<StaticSt, Token![;]>,
-) -> proc_macro2::TokenStream {
-    quote_spanned! { brace_token.span => {
-            let templates = ::std::collections::HashMap::new();
-            ::string_template::StGroup::new(templates)
-        }
-    }
-}
-
 #[proc_macro]
 pub fn st_group(input: TokenStream) -> TokenStream {
-    let StaticStGroup {
-        visibility,
-        group_name,
-        brace_token,
-        templates,
-    } = parse_macro_input!(input as StaticStGroup);
-
-    let ty = quote! { ::string_template::StGroup };
-
-    let init = init_for_group(&brace_token, templates);
-
-    let init_ptr = quote_spanned! { brace_token.span =>
-                               Box::into_raw(Box::new(#init))
-    };
-
-    let expanded = quote! {
-        #visibility struct #group_name;
-
-        impl ::std::ops::Deref for #group_name {
-            type Target = #ty;
-
-            fn deref(&self) -> &#ty {
-                static ONCE: ::std::sync::Once = ::std::sync::ONCE_INIT;
-                static mut VALUE: *mut #ty = 0 as *mut #ty;
-
-                unsafe {
-                    ONCE.call_once(|| VALUE = #init_ptr);
-                    &*VALUE
-                }
-            }
-        }
-    };
-    expanded.into()
+    let group: StaticStGroup = parse_macro_input!(input as StaticStGroup);
+    group.into_token_stream().into()
 }
 
 #[cfg(test)]
