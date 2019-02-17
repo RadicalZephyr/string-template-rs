@@ -155,12 +155,21 @@ impl StGroup {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+struct NoneDelimiter;
+
+impl Parse for NoneDelimiter {
+    fn parse(_input: ParseStream) -> Result<Self> {
+        Ok(NoneDelimiter)
+    }
+}
+
 #[derive(Clone)]
 pub struct StaticStGroup {
     visibility: Visibility,
     group_name: Ident,
     brace_token: token::Brace,
-    templates: Punctuated<StaticSt, Token![;]>,
+    templates: Punctuated<StaticSt, NoneDelimiter>,
 }
 
 impl fmt::Debug for StaticStGroup {
@@ -262,9 +271,7 @@ impl Parse for StaticSt {
         input.parse::<Token![::]>()?;
         input.parse::<Token![=]>()?;
 
-        input.parse::<Token![<<]>()?;
         let template_body = input.parse()?;
-        input.parse::<Token![>>]>()?;
 
         Ok(StaticSt {
             name,
@@ -292,12 +299,12 @@ impl ToTokens for StaticSt {
 
 #[derive(Clone)]
 struct TemplateBody {
-    foo: Ident,
+    literal: syn::LitStr,
 }
 
 impl fmt::Display for TemplateBody {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.foo)
+        write!(f, "{}", self.literal.value())
     }
 }
 
@@ -313,17 +320,21 @@ impl cmp::PartialEq for TemplateBody {
     }
 }
 
+// In the body of a template, whitespace is critically important, so
+// the Syn parser may not be the best tool. It will probably be easier
+// to write this using a pest parser since syn doesn't really have any
+// tools for showing me the whitespace.
 impl Parse for TemplateBody {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(TemplateBody {
-            foo: input.parse()?,
+            literal: input.parse()?,
         })
     }
 }
 
 impl ToTokens for TemplateBody {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let content = self.foo.to_string();
+        let content = self.literal.value();
         tokens.extend(quote! { vec![::string_template::Expr::Literal(#content.to_string())] });
     }
 }
@@ -353,7 +364,7 @@ mod tests {
                 },
                 templates: Punctuated::new(),
             },
-            parse_group("static ref group_a {\n a() ::= <<foo>>\n }")
+            parse_group("static ref group_a {\n a() ::= \"foo\"\n}")
         );
     }
 }
