@@ -150,8 +150,8 @@ impl StGroup {
         StGroup(templates)
     }
 
-    pub fn get(&self, template_name: impl AsRef<str>) -> Option<&St> {
-        self.0.get(template_name.as_ref())
+    pub fn get(&self, template_name: impl AsRef<str>) -> Option<St> {
+        self.0.get(template_name.as_ref()).cloned()
     }
 }
 
@@ -208,12 +208,17 @@ impl ToTokens for StaticStGroup {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ty = quote! { ::string_template::StGroup };
         let templates = &self.templates;
-        let group_name = &self.group_name;
         let visibility = &self.visibility;
+        let template_access_fns = self.templates.iter().map(|st| st.access_fn(&visibility));
+        let group_name = &self.group_name;
         let expanded = quote_spanned! {
             self.brace_token.span =>
                 #[allow(non_camel_case_types)]
                 #visibility struct #group_name;
+
+                impl #group_name {
+                    #( #template_access_fns )*
+                }
 
                 impl ::std::ops::Deref for #group_name {
                     type Target = #ty;
@@ -245,6 +250,18 @@ pub struct StaticSt {
     paren_token: token::Paren,
     formal_args: Punctuated<Ident, Token![,]>,
     template_body: TemplateBody,
+}
+
+impl StaticSt {
+    pub fn access_fn(&self, vis: &Visibility) -> proc_macro2::TokenStream {
+        let name = &self.name;
+        let name_str = name.to_string();
+        quote! {
+            #vis fn #name(&self) -> St {
+                self.get(#name_str).unwrap()
+            }
+        }
+    }
 }
 
 impl fmt::Debug for StaticSt {

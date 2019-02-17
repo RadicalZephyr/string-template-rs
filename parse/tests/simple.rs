@@ -8,7 +8,7 @@ st_group! {
     }
 }
 
-fn get_template<'a>(group: &'a StGroup, name: &'static str) -> &'a St {
+fn get_template(group: &StGroup, name: &'static str) -> St {
     group
         .get(name)
         .expect(&format!("unexpectedly failed to find template {}", name))
@@ -20,6 +20,18 @@ fn parse_literal_group() {
     assert_eq!("foo", format!("{}", a.render()));
 
     let b = get_template(&literal_group, "b");
+    assert_eq!(
+        r#"bar "things" { () } () baz => "#,
+        format!("{}", b.render())
+    );
+}
+
+#[test]
+fn use_static_methods() {
+    let a = literal_group.a();
+    assert_eq!("foo", format!("{}", a.render()));
+
+    let b = literal_group.b();
     assert_eq!(
         r#"bar "things" { () } () baz => "#,
         format!("{}", b.render())
