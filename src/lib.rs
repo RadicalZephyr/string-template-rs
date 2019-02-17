@@ -278,9 +278,11 @@ impl Parse for StaticSt {
 impl ToTokens for StaticSt {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.name.to_string();
+        let template_body = &self.template_body.to_string();
+        let compiled_template = &self.template_body;
         let expanded = quote! {
             templates.insert(#name, ::string_template::St {
-                imp: ::string_template::CompiledSt::new("#template_body", vec![]),
+                imp: ::string_template::CompiledSt::new(#template_body, #compiled_template),
                 attributes: ::string_template::Attributes::new(),
             });
         };
@@ -291,6 +293,12 @@ impl ToTokens for StaticSt {
 #[derive(Clone)]
 struct TemplateBody {
     foo: Ident,
+}
+
+impl fmt::Display for TemplateBody {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.foo)
+    }
 }
 
 impl fmt::Debug for TemplateBody {
@@ -310,6 +318,13 @@ impl Parse for TemplateBody {
         Ok(TemplateBody {
             foo: input.parse()?,
         })
+    }
+}
+
+impl ToTokens for TemplateBody {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let content = self.foo.to_string();
+        tokens.extend(quote! { vec![::string_template::Expr::Literal(#content.to_string())] });
     }
 }
 

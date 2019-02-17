@@ -8,7 +8,8 @@ st_group! {
 
 #[test]
 fn parse_literal_group() {
-    let _a = simple_group
+    let a = simple_group
         .get("a")
         .expect("unexpectedly failed to find template a");
+    assert_eq!("foo", format!("{}", a.render()));
 }
