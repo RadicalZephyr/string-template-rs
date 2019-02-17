@@ -277,7 +277,7 @@ impl Parse for StaticSt {
 
 impl ToTokens for StaticSt {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = format!(r#""{}""#, &self.name);
+        let name = self.name.to_string();
         let expanded = quote! {
             templates.insert(#name, ::string_template::St {
                 imp: ::string_template::CompiledSt::new("#template_body", vec![]),
