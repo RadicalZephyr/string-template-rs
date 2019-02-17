@@ -172,6 +172,21 @@ pub struct StaticStGroup {
     templates: Punctuated<StaticSt, NoneDelimiter>,
 }
 
+impl StaticStGroup {
+    pub fn new(visibility: Visibility, group_name: Ident) -> StaticStGroup {
+        StaticStGroup {
+            visibility,
+            group_name,
+            brace_token: Default::default(),
+            templates: Default::default(),
+        }
+    }
+
+    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticStGroup> {
+        syn::parse_str(template.as_ref())
+    }
+}
+
 impl fmt::Debug for StaticStGroup {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("StGroup")
@@ -356,32 +371,49 @@ impl ToTokens for TemplateBody {
     }
 }
 
-pub fn parse_group(template: &'static str) -> StaticStGroup {
-    syn::parse_str(template).expect("unexpected parsing failure")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use proc_macro2::Span;
+    use proc_macro2::{LineColumn, Span};
+
+    fn make_error_msg(error: syn::Error) -> String {
+        let span = error.span();
+        let start_col = span.start().column;
+        let end_col = span.end().column;
+        format!(
+            "{:spacing$}{:^^width$} {}",
+            "",
+            "",
+            error,
+            spacing = start_col,
+            width = end_col - start_col
+        )
+    }
+
+    fn parse_group(template: &'static str) -> StaticStGroup {
+        match StaticStGroup::parse_str(template) {
+            Ok(actual) => actual,
+            Err(err) => {
+                panic!(
+                    "unexpectedly failed to parse template:\n{}\n{}\n",
+                    template,
+                    make_error_msg(err)
+                );
+            }
+        }
+    }
 
     #[test]
     fn parse_no_arg_template() {
         assert_eq!(
-            StaticStGroup {
-                visibility: Visibility::Public(syn::VisPublic {
-                    pub_token: token::Pub {
-                        span: Span::call_site()
-                    }
+            parse_group(r#"static ref group_a { a() ::= "foo" }"#),
+            StaticStGroup::new(
+                Visibility::Public(syn::VisPublic {
+                    pub_token: token::Pub::default(),
                 }),
-                group_name: Ident::new("group_a", Span::call_site()),
-                brace_token: token::Brace {
-                    span: Span::call_site()
-                },
-                templates: Punctuated::new(),
-            },
-            parse_group("static ref group_a {\n a() ::= \"foo\"\n}")
+                Ident::new("group_a", Span::call_site())
+            ),
         );
     }
 }
