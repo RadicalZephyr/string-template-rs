@@ -497,7 +497,7 @@ mod tests {
     fn error_message(template: &'static str) -> String {
         match StaticStGroup::parse_str(template) {
             Ok(actual) => panic!("unexpectedly parsed invalid template: {}", template),
-            Err(error) => format!("{}", error),
+            Err(error) => error.to_string(),
         }
     }
 
@@ -513,6 +513,7 @@ mod tests {
             ),
         );
     }
+
     #[test]
     fn show_error_in_single_line_template() {
         assert_eq!(
