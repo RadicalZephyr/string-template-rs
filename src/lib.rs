@@ -35,25 +35,33 @@ fn make_multi_line_error(
         1
     };
     let mut out: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-    for line in template.lines().take(start_line) {
+    let mut lines = template.lines();
+    let mut idx = 0;
+    while let Some(line) = lines.next() {
+        idx += 1;
         write!(out, "{}\n", line).ok();
+        if idx >= start_line {
+            break;
+        }
     }
 
-    if let Some(arrow_line) = template.lines().nth(start_line) {
-        write!(out, "{:length$}^\n", arrow_line, length = start_col).ok();
-    }
-
-    let vertical_lines: Vec<_> = template
-        .lines()
-        .skip(start_line + 1)
-        .take(end_line - start_line - 1)
-        .collect();
-    // let longest_length = vertical_lines.iter().map(|s| s.len()).max().unwrap();
-    // let line_column = longest_length + 2;
     let line_column = start_col + 1;
+
+    let mut num_vertical_lines = end_line - start_line - 1;
+    while let Some(arrow_line) = lines.next() {
+        if arrow_line.len() > line_column {
+            num_vertical_lines -= 1;
+            write!(out, "{}\n", arrow_line).ok();
+            continue;
+        }
+        write!(out, "{:length$}^\n", arrow_line, length = start_col).ok();
+        break;
+    }
+
+    let vertical_lines: Vec<_> = lines.take(num_vertical_lines).collect();
     for line in vertical_lines {
-        let bar = if line.len() <= line_column { "|" } else { "" };
-        write!(out, "{:length$}{}\n", line, bar, length = line_column - 1).ok();
+        let bar = if line.len() > line_column { "" } else { "|" };
+        write!(out, "{:length$}{}\n", line, bar, length = start_col).ok();
     }
 
     write!(
@@ -565,6 +573,25 @@ static ref group_a { (
                 r#"
 static ref group_a { (
 
+++++++++++++++++++++++++++++++
+ a() ) ::= "foo"
+}"#,
+            )
+        );
+    }
+
+    #[test]
+    fn show_multi_line_error_in_multi_line_template_with_long_arrow_line() {
+        assert_eq!(
+            r#"
+static ref group_a { (
+++++++++++++++++++++++++++++++
+ a() ) ::= "foo"     ^
+     ^               |
+     |---------------| expected identifier"#,
+            error_message(
+                r#"
+static ref group_a { (
 ++++++++++++++++++++++++++++++
  a() ) ::= "foo"
 }"#,
