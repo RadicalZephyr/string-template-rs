@@ -1,7 +1,12 @@
 #![recursion_limit = "128"]
 
 use std::collections::HashMap;
+use std::io::{Cursor, Write};
 use std::{cmp, fmt};
+
+use failure::Fail;
+
+use proc_macro2::LineColumn;
 
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
@@ -11,6 +16,100 @@ use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
 mod parser;
+
+#[derive(Clone, Debug, Fail, PartialEq, Eq)]
+#[fail(display = "{}", _0)]
+pub struct Error(String);
+
+fn make_multi_line_error(
+    start_line: usize,
+    start_col: usize,
+    end_line: usize,
+    end_col: usize,
+    template: &str,
+    error: syn::Error,
+) -> String {
+    let width = if end_col > start_col {
+        end_col - start_col
+    } else {
+        1
+    };
+    let mut out: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+    for line in template.lines().take(start_line) {
+        write!(out, "{}\n", line).ok();
+    }
+
+    if let Some(arrow_line) = template.lines().nth(start_line) {
+        write!(out, "{:length$}^\n", arrow_line, length = start_col).ok();
+    }
+
+    let vertical_lines: Vec<_> = template
+        .lines()
+        .skip(start_line + 1)
+        .take(end_line - start_line - 1)
+        .collect();
+    // let longest_length = vertical_lines.iter().map(|s| s.len()).max().unwrap();
+    // let line_column = longest_length + 2;
+    let line_column = start_col + 1;
+    for line in vertical_lines {
+        write!(out, "{:length$}|\n", line, length = line_column).ok();
+    }
+
+    write!(
+        out,
+        "{ep:before$}{ep:^^width$}{ep:after$}|\n",
+        ep = "",
+        before = end_col - 1,
+        width = width,
+        after = start_col - end_col,
+    )
+    .ok();
+
+    write!(
+        out,
+        "{ep:before$}|{ep:width$}{ep:-^after$}| {}",
+        error,
+        ep = "",
+        before = end_col - 1,
+        width = width - 1,
+        after = start_col - end_col,
+    )
+    .ok();
+
+    String::from_utf8_lossy(out.get_ref()).to_string()
+}
+
+impl Error {
+    pub fn new(template: impl AsRef<str>, error: syn::Error) -> Error {
+        let template = template.as_ref();
+        let span = error.span();
+        let LineColumn {
+            line: start_line,
+            column: start_col,
+        } = span.start();
+        let LineColumn {
+            line: end_line,
+            column: end_col,
+        } = span.end();
+
+        if start_line == end_line && end_col > start_col {
+            let template_lines = template.lines().take(start_line).collect::<Vec<&'_ str>>();
+            let msg = format!(
+                "{}\n{ep:spacing$}{ep:^^width$} {}",
+                template_lines.join("\n"),
+                error,
+                ep = "",
+                spacing = start_col,
+                width = end_col - start_col
+            );
+            Error(msg)
+        } else {
+            let msg =
+                make_multi_line_error(start_line, start_col, end_line, end_col, template, error);
+            Error(msg)
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
@@ -182,8 +281,8 @@ impl StaticStGroup {
         }
     }
 
-    pub fn parse_str(template: impl AsRef<str>) -> syn::Result<StaticStGroup> {
-        syn::parse_str(template.as_ref())
+    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticStGroup, Error> {
+        syn::parse_str(template.as_ref()).map_err(|e| Error::new(template, e))
     }
 }
 
@@ -375,32 +474,21 @@ impl ToTokens for TemplateBody {
 mod tests {
     use super::*;
 
-    use proc_macro2::{LineColumn, Span};
-
-    fn make_error_msg(error: syn::Error) -> String {
-        let span = error.span();
-        let start_col = span.start().column;
-        let end_col = span.end().column;
-        format!(
-            "{:spacing$}{:^^width$} {}",
-            "",
-            "",
-            error,
-            spacing = start_col,
-            width = end_col - start_col
-        )
-    }
+    use proc_macro2::Span;
 
     fn parse_group(template: &'static str) -> StaticStGroup {
         match StaticStGroup::parse_str(template) {
             Ok(actual) => actual,
-            Err(err) => {
-                panic!(
-                    "unexpectedly failed to parse template:\n{}\n{}\n",
-                    template,
-                    make_error_msg(err)
-                );
+            Err(error) => {
+                panic!("unexpectedly failed to parse template:\n{}\n", error);
             }
+        }
+    }
+
+    fn error_message(template: &'static str) -> String {
+        match StaticStGroup::parse_str(template) {
+            Ok(actual) => panic!("unexpectedly parsed invalid template: {}", template),
+            Err(error) => format!("{}", error),
         }
     }
 
@@ -416,21 +504,49 @@ mod tests {
             ),
         );
     }
+    #[test]
+    fn show_error_in_single_line_template() {
+        assert_eq!(
+            r#"
+static bunny ref group_a { a() ::= "foo" }
+       ^^^^^ expected `ref`"#,
+            error_message(
+                r#"
+static bunny ref group_a { a() ::= "foo" }"#
+            )
+        );
+    }
 
     #[test]
-    fn parse_multi_line_template() {
+    fn show_single_line_error_in_multi_line_template() {
         assert_eq!(
-            parse_group(
-                r#"static ref group_a {
-a() ::= "foo"
-}"#
-            ),
-            StaticStGroup::new(
-                Visibility::Public(syn::VisPublic {
-                    pub_token: token::Pub::default(),
-                }),
-                Ident::new("group_a", Span::call_site())
-            ),
+            r#"
+static ref group_a {
+ a() lemons ::= "foo"
+     ^^^^^^ expected `::`"#,
+            error_message(
+                r#"
+static ref group_a {
+ a() lemons ::= "foo"
+}"#,
+            )
+        );
+    }
+
+    #[test]
+    fn show_multi_line_error_in_multi_line_template() {
+        assert_eq!(
+            r#"
+static ref group_a { (
+ a() ) ::= "foo"     ^
+     ^               |
+     |---------------| expected identifier"#,
+            error_message(
+                r#"
+static ref group_a { (
+ a() ) ::= "foo"
+}"#,
+            )
         );
     }
 }
