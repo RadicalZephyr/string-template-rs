@@ -6,7 +6,7 @@ use std::{cmp, fmt};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
-use syn::parse::{Parse, ParseStream, Result};
+use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
@@ -159,7 +159,7 @@ impl StGroup {
 struct NoneDelimiter;
 
 impl Parse for NoneDelimiter {
-    fn parse(_input: ParseStream) -> Result<Self> {
+    fn parse(_input: ParseStream) -> syn::Result<Self> {
         Ok(NoneDelimiter)
     }
 }
@@ -182,7 +182,7 @@ impl StaticStGroup {
         }
     }
 
-    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticStGroup> {
+    pub fn parse_str(template: impl AsRef<str>) -> syn::Result<StaticStGroup> {
         syn::parse_str(template.as_ref())
     }
 }
@@ -202,7 +202,7 @@ impl cmp::PartialEq for StaticStGroup {
 }
 
 impl Parse for StaticStGroup {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let visibility = input.parse()?;
         input.parse::<Token![static]>()?;
         input.parse::<Token![ref]>()?;
@@ -294,7 +294,7 @@ impl cmp::PartialEq for StaticSt {
 }
 
 impl Parse for StaticSt {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
         let content;
         let paren_token = parenthesized!(content in input);
@@ -357,7 +357,7 @@ impl cmp::PartialEq for TemplateBody {
 // to write this using a pest parser since syn doesn't really have any
 // tools for showing me the whitespace.
 impl Parse for TemplateBody {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(TemplateBody {
             literal: input.parse()?,
         })
@@ -408,6 +408,23 @@ mod tests {
     fn parse_no_arg_template() {
         assert_eq!(
             parse_group(r#"static ref group_a { a() ::= "foo" }"#),
+            StaticStGroup::new(
+                Visibility::Public(syn::VisPublic {
+                    pub_token: token::Pub::default(),
+                }),
+                Ident::new("group_a", Span::call_site())
+            ),
+        );
+    }
+
+    #[test]
+    fn parse_multi_line_template() {
+        assert_eq!(
+            parse_group(
+                r#"static ref group_a {
+a() ::= "foo"
+}"#
+            ),
             StaticStGroup::new(
                 Visibility::Public(syn::VisPublic {
                     pub_token: token::Pub::default(),
