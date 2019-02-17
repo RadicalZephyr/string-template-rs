@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 use std::{cmp, fmt};
 
-use proc_macro2::Span;
-
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
@@ -200,36 +198,33 @@ impl Parse for StaticStGroup {
 impl ToTokens for StaticStGroup {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ty = quote! { ::string_template::StGroup };
-        let brace_span: Span = self.brace_token.span;
         let templates = &self.templates;
-        let init = quote_spanned! { brace_span =>
-                                    {
-                                        let mut templates = ::std::collections::HashMap::new();
-                                        #( #templates )*
-                                        ::string_template::StGroup::new(templates)
-                                    }
-        };
-        let init_ptr = quote_spanned! { self.brace_token.span =>
-                                   Box::into_raw(Box::new(#init))
-        };
-        let visibility = &self.visibility;
         let group_name = &self.group_name;
-        let expanded = quote! {
-            #visibility struct #group_name;
+        let visibility = &self.visibility;
+        let expanded = quote_spanned! {
+            self.brace_token.span =>
+                #[allow(non_camel_case_types)]
+                #visibility struct #group_name;
 
-            impl ::std::ops::Deref for #group_name {
-                type Target = #ty;
+                impl ::std::ops::Deref for #group_name {
+                    type Target = #ty;
 
-                fn deref(&self) -> &#ty {
-                    static ONCE: ::std::sync::Once = ::std::sync::ONCE_INIT;
-                    static mut VALUE: *mut #ty = 0 as *mut #ty;
+                    fn deref(&self) -> &#ty {
+                        static ONCE: ::std::sync::Once = ::std::sync::ONCE_INIT;
+                        static mut VALUE: *mut #ty = 0 as *mut #ty;
 
-                    unsafe {
-                        ONCE.call_once(|| VALUE = #init_ptr);
-                        &*VALUE
+                        fn init() -> #ty {
+                            let mut templates = ::std::collections::HashMap::new();
+                            #( #templates )*
+                            ::string_template::StGroup::new(templates)
+                        }
+
+                        unsafe {
+                            ONCE.call_once(|| VALUE = Box::into_raw(Box::new(init())));
+                            &*VALUE
+                        }
                     }
                 }
-            }
         };
         tokens.extend(expanded);
     }
