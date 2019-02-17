@@ -52,7 +52,8 @@ fn make_multi_line_error(
     // let line_column = longest_length + 2;
     let line_column = start_col + 1;
     for line in vertical_lines {
-        write!(out, "{:length$}|\n", line, length = line_column).ok();
+        let bar = if line.len() <= line_column { "|" } else { "" };
+        write!(out, "{:length$}{}\n", line, bar, length = line_column - 1).ok();
     }
 
     write!(
@@ -544,6 +545,27 @@ static ref group_a { (
             error_message(
                 r#"
 static ref group_a { (
+ a() ) ::= "foo"
+}"#,
+            )
+        );
+    }
+
+    #[test]
+    fn show_multi_line_error_in_multi_line_template_with_longer_vertical_lines() {
+        assert_eq!(
+            r#"
+static ref group_a { (
+                     ^
+++++++++++++++++++++++++++++++
+ a() ) ::= "foo"     |
+     ^               |
+     |---------------| expected identifier"#,
+            error_message(
+                r#"
+static ref group_a { (
+
+++++++++++++++++++++++++++++++
  a() ) ::= "foo"
 }"#,
             )
