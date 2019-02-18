@@ -39,7 +39,7 @@ fn make_multi_line_error(
     let mut idx = 0;
     while let Some(line) = lines.next() {
         idx += 1;
-        write!(out, "{}\n", line).ok();
+        writeln!(out, "{}", line).ok();
         if idx >= start_line {
             break;
         }
@@ -51,22 +51,22 @@ fn make_multi_line_error(
     while let Some(arrow_line) = lines.next() {
         if arrow_line.len() > line_column {
             num_vertical_lines -= 1;
-            write!(out, "{}\n", arrow_line).ok();
+            writeln!(out, "{}", arrow_line).ok();
             continue;
         }
-        write!(out, "{:length$}^\n", arrow_line, length = start_col).ok();
+        writeln!(out, "{:length$}^", arrow_line, length = start_col).ok();
         break;
     }
 
     let vertical_lines: Vec<_> = lines.take(num_vertical_lines).collect();
     for line in vertical_lines {
-        let bar = if line.len() > line_column { "" } else { "|" };
-        write!(out, "{:length$}{}\n", line, bar, length = start_col).ok();
+        let maybe_bar = if line.len() > line_column { "" } else { "|" };
+        writeln!(out, "{:length$}{}", line, maybe_bar, length = start_col).ok();
     }
 
-    write!(
+    writeln!(
         out,
-        "{ep:before$}{ep:^^width$}{ep:after$}|\n",
+        "{ep:before$}{ep:^^width$}{ep:after$}|",
         ep = "",
         before = end_col - 1,
         width = width,
