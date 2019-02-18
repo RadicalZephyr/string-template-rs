@@ -485,7 +485,7 @@ mod tests {
 
     use proc_macro2::Span;
 
-    fn parse_group(template: &'static str) -> StaticStGroup {
+    fn parse_static_group(template: &'static str) -> StaticStGroup {
         match StaticStGroup::parse_str(template) {
             Ok(actual) => actual,
             Err(error) => {
@@ -496,15 +496,15 @@ mod tests {
 
     fn error_message(template: &'static str) -> String {
         match StaticStGroup::parse_str(template) {
-            Ok(actual) => panic!("unexpectedly parsed invalid template: {}", template),
+            Ok(_) => panic!("unexpectedly parsed invalid template: {}", template),
             Err(error) => error.to_string(),
         }
     }
 
     #[test]
-    fn parse_no_arg_template() {
+    fn parse_no_arg_literal_template() {
         assert_eq!(
-            parse_group(r#"static ref group_a { a() ::= "foo" }"#),
+            parse_static_group(r#"static ref group_a { a() ::= "foo" }"#),
             StaticStGroup::new(
                 Visibility::Public(syn::VisPublic {
                     pub_token: token::Pub::default(),
