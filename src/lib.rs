@@ -116,6 +116,19 @@ impl Attributes {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct StGroup(HashMap<&'static str, St>);
+
+impl StGroup {
+    pub fn new(templates: HashMap<&'static str, St>) -> StGroup {
+        StGroup(templates)
+    }
+
+    pub fn get(&self, template_name: impl AsRef<str>) -> Option<St> {
+        self.0.get(template_name.as_ref()).cloned()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct St {
     pub imp: CompiledSt,
     pub attributes: Attributes,
@@ -135,18 +148,5 @@ impl St {
 
     pub fn render(&self) -> String {
         self.imp.render(&self.attributes)
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct StGroup(HashMap<&'static str, St>);
-
-impl StGroup {
-    pub fn new(templates: HashMap<&'static str, St>) -> StGroup {
-        StGroup(templates)
-    }
-
-    pub fn get(&self, template_name: impl AsRef<str>) -> Option<St> {
-        self.0.get(template_name.as_ref()).cloned()
     }
 }
