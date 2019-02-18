@@ -2,12 +2,14 @@ use std::io::{Cursor, Write};
 
 use failure::Fail;
 
+#[cfg(procmacro2_semver_exempt)]
 use proc_macro2::LineColumn;
 
 #[derive(Clone, Debug, Fail, PartialEq, Eq)]
 #[fail(display = "{}", _0)]
 pub struct Error(String);
 
+#[allow(dead_code)]
 fn make_multi_line_error(
     start_line: usize,
     start_col: usize,
@@ -75,39 +77,52 @@ fn make_multi_line_error(
     String::from_utf8_lossy(out.get_ref()).to_string()
 }
 
-impl Error {
-    pub fn new(template: impl AsRef<str>, error: syn::Error) -> Error {
-        let template = template.as_ref();
-        let span = error.span();
-        let LineColumn {
-            line: start_line,
-            column: start_col,
-        } = span.start();
-        let LineColumn {
-            line: end_line,
-            column: end_col,
-        } = span.end();
+#[cfg(procmacro2_semver_exempt)]
+fn make_error(template: impl AsRef<str>, error: syn::Error) -> Error {
+    let template = template.as_ref();
+    let span = error.span();
+    let LineColumn {
+        line: start_line,
+        column: start_col,
+    } = span.start();
+    let LineColumn {
+        line: end_line,
+        column: end_col,
+    } = span.end();
 
-        if start_line == end_line && end_col > start_col {
-            let template_lines = template.lines().take(start_line).collect::<Vec<&'_ str>>();
-            let msg = format!(
-                "{}\n{ep:spacing$}{ep:^^width$} {}",
-                template_lines.join("\n"),
-                error,
-                ep = "",
-                spacing = start_col,
-                width = end_col - start_col
-            );
-            Error(msg)
-        } else {
-            let msg =
-                make_multi_line_error(start_line, start_col, end_line, end_col, template, error);
-            Error(msg)
-        }
+    if start_line == end_line && end_col > start_col {
+        let template_lines = template.lines().take(start_line).collect::<Vec<&'_ str>>();
+        let msg = format!(
+            "{}\n{ep:spacing$}{ep:^^width$} {}",
+            template_lines.join("\n"),
+            error,
+            ep = "",
+            spacing = start_col,
+            width = end_col - start_col
+        );
+        Error(msg)
+    } else {
+        let msg = make_multi_line_error(start_line, start_col, end_line, end_col, template, error);
+        Error(msg)
     }
 }
 
-#[cfg(test)]
+#[cfg(not(procmacro2_semver_exempt))]
+fn make_error(template: impl AsRef<str>, error: syn::Error) -> Error {
+    Error(format!(
+        "Failed to parse template: {}\n{}\n",
+        error,
+        template.as_ref()
+    ))
+}
+
+impl Error {
+    pub fn new(template: impl AsRef<str>, error: syn::Error) -> Error {
+        make_error(template, error)
+    }
+}
+
+#[cfg(all(test, procmacro2_semver_exempt))]
 mod tests {
     use crate::StaticStGroup;
 
