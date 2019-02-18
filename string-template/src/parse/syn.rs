@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{cmp, fmt};
 
 use quote::ToTokens;
@@ -7,7 +8,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
-use crate::Error;
+use crate::{Error, St, StGroup};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -38,6 +39,13 @@ impl StaticStGroup {
 
     pub fn parse_str(template: impl AsRef<str>) -> Result<StaticStGroup, Error> {
         syn::parse_str(template.as_ref()).map_err(|e| Error::new(template, e))
+    }
+
+    pub fn templates(self) -> HashMap<String, St> {
+        self.templates
+            .into_iter()
+            .map(|st| (st.name.to_string(), st.template_body.into()))
+            .collect()
     }
 }
 
@@ -70,6 +78,13 @@ impl Parse for StaticStGroup {
             templates,
             brace_token,
         })
+    }
+}
+
+impl From<StaticStGroup> for StGroup {
+    fn from(static_group: StaticStGroup) -> StGroup {
+        let templates = static_group.templates();
+        StGroup(templates)
     }
 }
 
@@ -215,6 +230,12 @@ impl Parse for TemplateBody {
         Ok(TemplateBody {
             literal: input.parse()?,
         })
+    }
+}
+
+impl From<TemplateBody> for St {
+    fn from(template: TemplateBody) -> St {
+        St::new(template.to_string())
     }
 }
 

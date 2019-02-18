@@ -1,6 +1,7 @@
 #![recursion_limit = "128"]
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 mod error;
 pub use crate::error::Error;
@@ -116,15 +117,24 @@ impl Attributes {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct StGroup(HashMap<&'static str, St>);
+pub struct StGroup(HashMap<String, St>);
 
 impl StGroup {
-    pub fn new(templates: HashMap<&'static str, St>) -> StGroup {
+    pub fn new(templates: HashMap<String, St>) -> StGroup {
         StGroup(templates)
     }
 
     pub fn get(&self, template_name: impl AsRef<str>) -> Option<St> {
         self.0.get(template_name.as_ref()).cloned()
+    }
+}
+
+impl FromStr for StGroup {
+    type Err = Error;
+
+    fn from_str(template: &str) -> Result<StGroup, Self::Err> {
+        let group = StaticStGroup::parse_str(template)?;
+        Ok(group.into())
     }
 }
 
