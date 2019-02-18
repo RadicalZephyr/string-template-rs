@@ -1,13 +1,6 @@
-[package]
-name = "string-template"
-version = "0.1.0"
-authors = ["Geoff Shannon <geoffpshannon@gmail.com>"]
-edition = "2018"
+[workspace]
 
-[dependencies]
-failure = "0.1"
-pest = "2.0"
-pest_derive = "2.0"
-proc-macro2 = "0.4"
-quote = "0.6"
-syn = "0.15"
+members = [
+    "string-template",
+    "string-template-macro",
+]

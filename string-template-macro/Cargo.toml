@@ -1,11 +1,11 @@
 [package]
-name = "parse"
+name = "string-template-macro"
 version = "0.1.0"
 authors = ["Geoff Shannon <geoffpshannon@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-string-template = { version = "0.1", path = ".." }
+string-template = { version = "0.1", path = "../string-template" }
 quote = "0.6"
 syn = "0.15"
 

@@ -1,5 +1,5 @@
-use parse::st_group;
 use string_template::{St, StGroup};
+use string_template_macro::st_group;
 
 st_group! {
     static ref literal_group {
