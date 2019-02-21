@@ -7,7 +7,7 @@ mod error;
 pub use crate::error::Error;
 
 mod parse;
-pub use crate::parse::syn::StaticGroup;
+pub use crate::parse::syn::{GroupBody, StaticGroup};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
@@ -133,7 +133,7 @@ impl FromStr for Group {
     type Err = Error;
 
     fn from_str(template: &str) -> Result<Group, Self::Err> {
-        let group = StaticGroup::parse_str(template)?;
+        let group = template.parse::<GroupBody>()?;
         Ok(group.into())
     }
 }
@@ -185,5 +185,29 @@ mod tests {
         let mut hello = Template::new("Hello, <title><name>!");
         hello.add("name", "World");
         assert_eq!("Hello, World!", format!("{}", hello.render()));
+    }
+
+    fn parse_group(group: &'static str) -> Group {
+        match group.parse() {
+            Ok(group) => group,
+            Err(error) => panic!("unexpectedly failed to parse Group: {}", error),
+        }
+    }
+
+    fn get_template(group: &Group, name: &'static str) -> Template {
+        group
+            .get(name)
+            .expect(&format!("unexpectedly failed to get template {}", name))
+    }
+
+    #[test]
+    fn renders_template_from_group() {
+        let group: Group = parse_group(
+            r#"
+a() ::= "FOO"
+"#,
+        );
+        let a = get_template(&group, "a");
+        assert_eq!("FOO", a.render());
     }
 }
