@@ -124,10 +124,10 @@ impl Error {
 
 #[cfg(all(test, procmacro2_semver_exempt))]
 mod tests {
-    use crate::StaticStGroup;
+    use crate::StaticGroup;
 
     fn error_message(template: &'static str) -> String {
-        match StaticStGroup::parse_str(template) {
+        match StaticGroup::parse_str(template) {
             Ok(_) => panic!("unexpectedly parsed invalid template: {}", template),
             Err(error) => error.to_string(),
         }

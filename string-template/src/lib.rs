@@ -7,7 +7,7 @@ mod error;
 pub use crate::error::Error;
 
 mod parse;
-pub use crate::parse::syn::StaticStGroup;
+pub use crate::parse::syn::StaticGroup;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
@@ -117,36 +117,36 @@ impl Attributes {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct StGroup(HashMap<String, St>);
+pub struct Group(HashMap<String, Template>);
 
-impl StGroup {
-    pub fn new(templates: HashMap<String, St>) -> StGroup {
-        StGroup(templates)
+impl Group {
+    pub fn new(templates: HashMap<String, Template>) -> Group {
+        Group(templates)
     }
 
-    pub fn get(&self, template_name: impl AsRef<str>) -> Option<St> {
+    pub fn get(&self, template_name: impl AsRef<str>) -> Option<Template> {
         self.0.get(template_name.as_ref()).cloned()
     }
 }
 
-impl FromStr for StGroup {
+impl FromStr for Group {
     type Err = Error;
 
-    fn from_str(template: &str) -> Result<StGroup, Self::Err> {
-        let group = StaticStGroup::parse_str(template)?;
+    fn from_str(template: &str) -> Result<Group, Self::Err> {
+        let group = StaticGroup::parse_str(template)?;
         Ok(group.into())
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct St {
+pub struct Template {
     pub imp: CompiledSt,
     pub attributes: Attributes,
 }
 
-impl St {
-    pub fn new(template: impl Into<String>) -> St {
-        St {
+impl Template {
+    pub fn new(template: impl Into<String>) -> Template {
+        Template {
             imp: CompiledSt::compile(template),
             attributes: Attributes::new(),
         }
@@ -167,14 +167,14 @@ mod tests {
 
     #[test]
     fn renders_hello_world() {
-        let mut hello = St::new("Hello, <name>!");
+        let mut hello = Template::new("Hello, <name>!");
         hello.add("name", "World");
         assert_eq!("Hello, World!", format!("{}", hello.render()));
     }
 
     #[test]
     fn renders_multiple_attributes() {
-        let mut hello = St::new("Hello, <title><name>!");
+        let mut hello = Template::new("Hello, <title><name>!");
         hello.add("name", "World");
         hello.add("title", "Old ");
         assert_eq!("Hello, Old World!", format!("{}", hello.render()));
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn renders_missing_attributes_as_empty_string() {
-        let mut hello = St::new("Hello, <title><name>!");
+        let mut hello = Template::new("Hello, <title><name>!");
         hello.add("name", "World");
         assert_eq!("Hello, World!", format!("{}", hello.render()));
     }

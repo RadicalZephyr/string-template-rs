@@ -1,4 +1,4 @@
-use string_template::{St, StGroup};
+use string_template::{Group, Template};
 use string_template_macro::st_group;
 
 st_group! {
@@ -8,7 +8,7 @@ st_group! {
     }
 }
 
-fn get_template(group: &StGroup, name: &'static str) -> St {
+fn get_template(group: &Group, name: &'static str) -> Template {
     group
         .get(name)
         .expect(&format!("unexpectedly failed to find template {}", name))

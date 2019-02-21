@@ -8,7 +8,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
-use crate::{Error, St, StGroup};
+use crate::{Error, Group, Template};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -20,16 +20,16 @@ impl Parse for NoneDelimiter {
 }
 
 #[derive(Clone)]
-pub struct StaticStGroup {
+pub struct StaticGroup {
     visibility: Visibility,
     group_name: Ident,
     brace_token: token::Brace,
     templates: Punctuated<StaticSt, NoneDelimiter>,
 }
 
-impl StaticStGroup {
-    pub fn new(visibility: Visibility, group_name: Ident) -> StaticStGroup {
-        StaticStGroup {
+impl StaticGroup {
+    pub fn new(visibility: Visibility, group_name: Ident) -> StaticGroup {
+        StaticGroup {
             visibility,
             group_name,
             brace_token: Default::default(),
@@ -37,11 +37,11 @@ impl StaticStGroup {
         }
     }
 
-    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticStGroup, Error> {
+    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticGroup, Error> {
         syn::parse_str(template.as_ref()).map_err(|e| Error::new(template, e))
     }
 
-    pub fn templates(self) -> HashMap<String, St> {
+    pub fn templates(self) -> HashMap<String, Template> {
         self.templates
             .into_iter()
             .map(|st| (st.name.to_string(), st.template_body.into()))
@@ -49,21 +49,21 @@ impl StaticStGroup {
     }
 }
 
-impl fmt::Debug for StaticStGroup {
+impl fmt::Debug for StaticGroup {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("StGroup")
+        f.debug_struct("Group")
             .field("group_name", &self.group_name)
             .finish()
     }
 }
 
-impl cmp::PartialEq for StaticStGroup {
+impl cmp::PartialEq for StaticGroup {
     fn eq(&self, other: &Self) -> bool {
         self.group_name == other.group_name
     }
 }
 
-impl Parse for StaticStGroup {
+impl Parse for StaticGroup {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let visibility = input.parse()?;
         input.parse::<Token![static]>()?;
@@ -72,7 +72,7 @@ impl Parse for StaticStGroup {
         let content;
         let brace_token = braced!(content in input);
         let templates = content.parse_terminated(StaticSt::parse)?;
-        Ok(StaticStGroup {
+        Ok(StaticGroup {
             visibility,
             group_name,
             templates,
@@ -81,16 +81,16 @@ impl Parse for StaticStGroup {
     }
 }
 
-impl From<StaticStGroup> for StGroup {
-    fn from(static_group: StaticStGroup) -> StGroup {
+impl From<StaticGroup> for Group {
+    fn from(static_group: StaticGroup) -> Group {
         let templates = static_group.templates();
-        StGroup(templates)
+        Group(templates)
     }
 }
 
-impl ToTokens for StaticStGroup {
+impl ToTokens for StaticGroup {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ty = quote! { ::string_template::StGroup };
+        let ty = quote! { ::string_template::Group };
         let templates = &self.templates;
         let visibility = &self.visibility;
         let template_access_fns = self.templates.iter().map(|st| st.access_fn(&visibility));
@@ -114,7 +114,7 @@ impl ToTokens for StaticStGroup {
                         fn init() -> #ty {
                             let mut templates = ::std::collections::HashMap::new();
                             #( #templates )*
-                            ::string_template::StGroup::new(templates)
+                            ::string_template::Group::new(templates)
                         }
 
                         unsafe {
@@ -141,7 +141,7 @@ impl StaticSt {
         let name = &self.name;
         let name_str = name.to_string();
         quote! {
-            #vis fn #name(&self) -> St {
+            #vis fn #name(&self) -> Template {
                 self.get(#name_str).unwrap()
             }
         }
@@ -189,7 +189,7 @@ impl ToTokens for StaticSt {
         let template_body = &self.template_body.to_string();
         let compiled_template = &self.template_body;
         let expanded = quote! {
-            templates.insert(#name, ::string_template::St {
+            templates.insert(#name, ::string_template::Template {
                 imp: ::string_template::CompiledSt::new(#template_body, #compiled_template),
                 attributes: ::string_template::Attributes::new(),
             });
@@ -233,9 +233,9 @@ impl Parse for TemplateBody {
     }
 }
 
-impl From<TemplateBody> for St {
-    fn from(template: TemplateBody) -> St {
-        St::new(template.to_string())
+impl From<TemplateBody> for Template {
+    fn from(template: TemplateBody) -> Template {
+        Template::new(template.to_string())
     }
 }
 
@@ -252,8 +252,8 @@ mod tests {
 
     use proc_macro2::Span;
 
-    fn parse_static_group(template: &'static str) -> StaticStGroup {
-        match StaticStGroup::parse_str(template) {
+    fn parse_static_group(template: &'static str) -> StaticGroup {
+        match StaticGroup::parse_str(template) {
             Ok(actual) => actual,
             Err(error) => {
                 panic!("unexpectedly failed to parse template:\n{}\n", error);
@@ -265,7 +265,7 @@ mod tests {
     fn parse_no_arg_literal_template() {
         assert_eq!(
             parse_static_group(r#"static ref group_a { a() ::= "foo" }"#),
-            StaticStGroup::new(
+            StaticGroup::new(
                 Visibility::Public(syn::VisPublic {
                     pub_token: token::Pub::default(),
                 }),
