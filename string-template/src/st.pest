@@ -7,13 +7,15 @@ formal_args = !{ identifier ~ ("," ~ identifier)* }
 
 identifier = ${ ASCII_ALPHA+ }
 
-template_body = ${ single_line_body | multi_line_body }
+template_body = ${ single_line_delimited_body | multi_line_delimited_body }
 
-single_line_body = @{ "<<" ~ single_line_literal ~ ( expression ~ single_line_literal)* ~ ">>" }
+single_line_delimited_body = _{ "<<" ~ single_line_body ~ ">>" }
+single_line_body = ${ single_line_literal ~ ( expression ~ single_line_literal)* }
 single_line_literal = ${ single_line_literal_char* }
 single_line_literal_char = _{ ' '..';' | "=" | '?'..'~' }
 
-multi_line_body = @{ "\"" ~ multi_line_literal? ~ ( expression ~ multi_line_literal?)* ~ "\"" }
+multi_line_delimited_body = _{ "\"" ~ multi_line_body ~ "\"" }
+multi_line_body = ${ multi_line_literal? ~ ( expression ~ multi_line_literal?)* }
 multi_line_literal = ${ multi_line_literal_char+ }
 multi_line_literal_char = _{ ' '..'!' | '#'..';' | "=" | '?'..'~' | NEWLINE }
 

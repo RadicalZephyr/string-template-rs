@@ -27,7 +27,7 @@ mod tests {
                 template(0, 15, [
                     identifier(0, 1),
                     template_body(8, 15, [
-                        single_line_body(8, 15, [
+                        single_line_body(10, 13, [
                             single_line_literal(10, 13)
                         ])
                     ])
@@ -49,7 +49,7 @@ mod tests {
                         identifier(2, 3),
                     ]),
                     template_body(9, 16, [
-                        single_line_body(9, 16, [
+                        single_line_body(11, 14, [
                             single_line_literal(11, 14)
                         ])
                     ])
@@ -73,7 +73,7 @@ mod tests {
                         identifier(8, 9),
                     ]),
                     template_body(15, 22, [
-                        single_line_body(15, 22, [
+                        single_line_body(17, 20, [
                             single_line_literal(17, 20)
                         ])
                     ])
@@ -97,7 +97,7 @@ mod tests {
                         identifier(8, 9),
                     ]),
                     template_body(15, 20, [
-                        multi_line_body(15, 20, [
+                        multi_line_body(16, 19, [
                             multi_line_literal(16, 19)
                         ])
                     ])
@@ -123,7 +123,7 @@ foo
                         identifier(8, 9),
                     ]),
                     template_body(15, 22, [
-                        multi_line_body(15, 22, [
+                        multi_line_body(16, 21, [
                             multi_line_literal(16, 21)
                         ])
                     ])
