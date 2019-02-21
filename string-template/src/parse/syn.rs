@@ -128,6 +128,54 @@ impl ToTokens for StaticGroup {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct GroupBody {
+    templates: Punctuated<StaticSt, NoneDelimiter>,
+}
+
+impl GroupBody {
+    pub fn templates(self) -> HashMap<String, Template> {
+        self.templates
+            .into_iter()
+            .map(|st| (st.name.to_string(), st.template_body.into()))
+            .collect()
+    }
+
+    pub fn template_access_fns() -> proc_macro2::TokenStream {
+        quote! { {} }
+    }
+}
+
+impl Default for GroupBody {
+    fn default() -> GroupBody {
+        GroupBody {
+            templates: Default::default(),
+        }
+    }
+}
+
+impl From<GroupBody> for Group {
+    fn from(static_group: GroupBody) -> Group {
+        let templates = static_group.templates();
+        Group(templates)
+    }
+}
+
+impl Parse for GroupBody {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let templates = input.parse_terminated(StaticSt::parse)?;
+        Ok(GroupBody { templates })
+    }
+}
+
+impl ToTokens for GroupBody {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let templates = &self.templates;
+        let expanded = quote! { #( #templates )* };
+        tokens.extend(expanded);
+    }
+}
+
 #[derive(Clone)]
 pub struct StaticSt {
     name: Ident,
