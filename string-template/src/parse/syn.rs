@@ -284,21 +284,17 @@ impl cmp::PartialEq for TemplateBody {
     }
 }
 
-// In the body of a template, whitespace is critically important, so
-// the Syn parser may not be the best tool. It will probably be easier
-// to write this using a pest parser since syn doesn't really have any
-// tools for showing me the whitespace.
+impl From<TemplateBody> for Template {
+    fn from(template: TemplateBody) -> Template {
+        Template::new(template.to_string())
+    }
+}
+
 impl Parse for TemplateBody {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(TemplateBody {
             literal: input.parse()?,
         })
-    }
-}
-
-impl From<TemplateBody> for Template {
-    fn from(template: TemplateBody) -> Template {
-        Template::new(template.to_string())
     }
 }
 
