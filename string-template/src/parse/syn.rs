@@ -39,7 +39,7 @@ impl StaticGroup {
     }
 
     pub fn parse_str(template: impl AsRef<str>) -> Result<StaticGroup, Error> {
-        syn::parse_str(template.as_ref()).map_err(|e| Error::new(template, e))
+        syn::parse_str(template.as_ref()).map_err(|e| Error::syn(template, e))
     }
 }
 
@@ -172,7 +172,7 @@ impl FromStr for GroupBody {
     type Err = Error;
 
     fn from_str(template: &str) -> Result<GroupBody, Self::Err> {
-        syn::parse_str(template).map_err(|e| Error::new(template, e))
+        syn::parse_str(template).map_err(|e| Error::syn(template, e))
     }
 }
 

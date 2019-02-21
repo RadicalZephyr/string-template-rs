@@ -7,6 +7,7 @@ mod error;
 pub use crate::error::Error;
 
 mod parse;
+pub use crate::parse::pest::StParser;
 pub use crate::parse::syn::{GroupBody, StaticGroup};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -158,6 +159,18 @@ impl Template {
 
     pub fn render(&self) -> String {
         self.imp.render(&self.attributes)
+    }
+}
+
+impl FromStr for Template {
+    type Err = Error;
+
+    fn from_str(template: &str) -> Result<Template, Self::Err> {
+        let expressions = StParser::expressions_of(template)?;
+        Ok(Template {
+            imp: CompiledSt::new(template, expressions),
+            attributes: Attributes::default(),
+        })
     }
 }
 

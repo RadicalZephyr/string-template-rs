@@ -2,12 +2,21 @@ use std::io::{Cursor, Write};
 
 use failure::Fail;
 
+use pest::error::Error as PestError;
+
+use crate::parse::pest::Rule;
+
 #[cfg(procmacro2_semver_exempt)]
 use proc_macro2::LineColumn;
 
 #[derive(Clone, Debug, Fail, PartialEq, Eq)]
-#[fail(display = "{}", _0)]
-pub struct Error(String);
+pub enum Error {
+    #[fail(display = "{}", _0)]
+    Syn(String),
+
+    #[fail(display = "{:?}", _0)]
+    Pest(PestError<Rule>),
+}
 
 #[allow(dead_code)]
 fn make_multi_line_error(
@@ -109,7 +118,7 @@ fn make_error(template: impl AsRef<str>, error: syn::Error) -> Error {
 
 #[cfg(not(procmacro2_semver_exempt))]
 fn make_error(template: impl AsRef<str>, error: syn::Error) -> Error {
-    Error(format!(
+    Error::Syn(format!(
         "Failed to parse template: {}\n{}\n",
         error,
         template.as_ref()
@@ -117,8 +126,14 @@ fn make_error(template: impl AsRef<str>, error: syn::Error) -> Error {
 }
 
 impl Error {
-    pub fn new(template: impl AsRef<str>, error: syn::Error) -> Error {
+    pub fn syn(template: impl AsRef<str>, error: syn::Error) -> Error {
         make_error(template, error)
+    }
+}
+
+impl From<PestError<Rule>> for Error {
+    fn from(rule: PestError<Rule>) -> Error {
+        Error::Pest(rule)
     }
 }
 

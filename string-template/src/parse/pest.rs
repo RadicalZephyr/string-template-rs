@@ -1,17 +1,44 @@
+use pest::iterators::Pair;
+use pest::Parser;
+
 use pest_derive::Parser;
+
+use crate::{Error, Expr};
 
 #[derive(Copy, Clone, Debug, Parser)]
 #[grammar = "st.pest"]
 pub struct StParser;
 
+impl StParser {
+    pub fn expressions_of(template: &str) -> Result<Vec<Expr>, Error> {
+        fn parse_expression(expression: Pair<Rule>) -> Result<Expr, Error> {
+            match expression.as_rule() {
+                Rule::single_line_literal | Rule::multi_line_literal => {
+                    let literal = expression.as_str();
+                    Ok(Expr::Literal(literal.to_string()))
+                }
+                rule => unimplemented!("{:?}", rule),
+            }
+        }
+
+        let mut pairs = StParser::parse(Rule::multi_line_body, template)?;
+        pairs
+            .next()
+            .unwrap()
+            .into_inner()
+            .map(parse_expression)
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use pest::iterators::Pairs;
-    use pest::Parser;
-
     use super::*;
 
+    use pest::iterators::Pairs;
     use pest::{consumes_to, parses_to};
+
+    use crate::Template;
 
     fn parse_file(template: &'static str) -> Pairs<'_, Rule> {
         StParser::parse(Rule::file, template).expect("unexpectedly failed to parse template")
@@ -130,5 +157,11 @@ foo
                 ])
             ]
         };
+    }
+
+    #[test]
+    fn parse_into_template() {
+        let template: Template = "foo".parse().unwrap();
+        assert_eq!("foo", template.render());
     }
 }
