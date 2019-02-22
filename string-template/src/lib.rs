@@ -57,6 +57,15 @@ impl CompiledSt {
     }
 }
 
+impl FromStr for CompiledSt {
+    type Err = Error;
+
+    fn from_str(template: &str) -> Result<CompiledSt, Self::Err> {
+        let expressions = StParser::expressions_of(template)?;
+        Ok(CompiledSt::new(template, expressions))
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Attributes(HashMap<String, String>);
 
@@ -75,15 +84,18 @@ impl Attributes {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Group(HashMap<String, Template>);
+pub struct Group(HashMap<String, CompiledSt>);
 
 impl Group {
-    pub fn new(templates: HashMap<String, Template>) -> Group {
+    pub fn new(templates: HashMap<String, CompiledSt>) -> Group {
         Group(templates)
     }
 
     pub fn get(&self, template_name: impl AsRef<str>) -> Option<Template> {
-        self.0.get(template_name.as_ref()).cloned()
+        self.0
+            .get(template_name.as_ref())
+            .cloned()
+            .map(Template::from)
     }
 }
 
@@ -112,15 +124,12 @@ impl Template {
     }
 }
 
-impl FromStr for Template {
-    type Err = Error;
-
-    fn from_str(template: &str) -> Result<Template, Self::Err> {
-        let expressions = StParser::expressions_of(template)?;
-        Ok(Template {
-            imp: CompiledSt::new(template, expressions),
-            attributes: Attributes::default(),
-        })
+impl From<CompiledSt> for Template {
+    fn from(compiled: CompiledSt) -> Template {
+        Template {
+            imp: compiled,
+            attributes: Attributes::new(),
+        }
     }
 }
 
@@ -130,8 +139,9 @@ mod tests {
 
     fn parse_template(template: &'static str) -> Template {
         template
-            .parse::<Template>()
+            .parse::<CompiledSt>()
             .expect("unexpectedly failed to parse template")
+            .into()
     }
 
     #[test]

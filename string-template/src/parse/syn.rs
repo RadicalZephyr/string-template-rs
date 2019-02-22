@@ -9,7 +9,8 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
-use crate::{Error, Group, Template};
+use crate::parse::pest::StParser;
+use crate::{CompiledSt, Error, Expr, Group};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -130,7 +131,7 @@ impl GroupBody {
         })
     }
 
-    pub fn templates(self) -> HashMap<String, Template> {
+    pub fn templates(self) -> HashMap<String, CompiledSt> {
         self.templates
             .into_iter()
             .map(|st| (st.name.to_string(), st.template_body.into()))
@@ -264,6 +265,7 @@ impl ToTokens for StaticSt {
 #[derive(Clone)]
 struct TemplateBody {
     literal: syn::LitStr,
+    expressions: Vec<Expr>,
 }
 
 impl fmt::Display for TemplateBody {
@@ -284,24 +286,49 @@ impl cmp::PartialEq for TemplateBody {
     }
 }
 
-impl From<TemplateBody> for Template {
-    fn from(template: TemplateBody) -> Template {
-        template.to_string().parse().unwrap()
+impl From<TemplateBody> for CompiledSt {
+    fn from(body: TemplateBody) -> CompiledSt {
+        let TemplateBody {
+            literal,
+            expressions,
+        } = body;
+        CompiledSt::new(literal.value(), expressions)
     }
 }
 
 impl Parse for TemplateBody {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let literal: syn::LitStr = input.parse()?;
+        let expressions = StParser::expressions_of(&literal.value())?;
         Ok(TemplateBody {
-            literal: input.parse()?,
+            literal,
+            expressions,
         })
     }
 }
 
 impl ToTokens for TemplateBody {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let content = self.literal.value();
-        tokens.extend(quote! { vec![::string_template::Expr::Literal(#content.to_string())] });
+        let expressions = &self.expressions;
+        tokens.extend(quote! {
+            vec![
+                #( #expressions ),*
+            ]
+        });
+    }
+}
+
+impl ToTokens for Expr {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let expanded = match self {
+            Expr::Literal(content) => {
+                quote! { ::string_template::Expr::Literal(#content.to_string()) }
+            }
+            Expr::Attribute(name) => {
+                quote! { ::string_template::Expr::Attribute(#name.to_string()) }
+            }
+        };
+        tokens.extend(expanded);
     }
 }
 

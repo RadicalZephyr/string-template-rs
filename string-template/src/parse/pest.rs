@@ -43,7 +43,7 @@ mod tests {
     use pest::iterators::Pairs;
     use pest::{consumes_to, parses_to};
 
-    use crate::Template;
+    use crate::{CompiledSt, Template};
 
     fn parse_file(template: &'static str) -> Pairs<'_, Rule> {
         StParser::parse(Rule::file, template).expect("unexpectedly failed to parse template")
@@ -164,17 +164,19 @@ foo
         };
     }
 
+    fn parse_template(template: &'static str) -> Template {
+        template.parse::<CompiledSt>().unwrap().into()
+    }
+
     #[test]
     fn parse_into_template() {
-        let template: Template = "foo".parse().unwrap();
+        let template: Template = parse_template("foo");
         assert_eq!("foo", template.render());
     }
 
     #[test]
     fn parse_into_expression_template() {
-        let mut hello: Template = "Hello <name>!"
-            .parse()
-            .expect("unexpectedly failed to parse template");
+        let mut hello: Template = parse_template("Hello <name>!");
         hello.add("name", "World");
         assert_eq!("Hello World!", hello.render());
     }
