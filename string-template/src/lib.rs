@@ -24,7 +24,7 @@ impl Default for Expr {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[allow(dead_code)]
-pub struct CompiledSt {
+pub struct CompiledTemplate {
     template: String,
     // These should really be a vec of `&'a str`, where 'a is the
     // lifetime of _this struct_. But I don't know how to correctly
@@ -35,9 +35,9 @@ pub struct CompiledSt {
     expressions: Vec<Expr>,
 }
 
-impl CompiledSt {
-    pub fn new(template: impl Into<String>, expressions: Vec<Expr>) -> CompiledSt {
-        CompiledSt {
+impl CompiledTemplate {
+    pub fn new(template: impl Into<String>, expressions: Vec<Expr>) -> CompiledTemplate {
+        CompiledTemplate {
             template: template.into(),
             expressions,
         }
@@ -57,12 +57,12 @@ impl CompiledSt {
     }
 }
 
-impl FromStr for CompiledSt {
+impl FromStr for CompiledTemplate {
     type Err = Error;
 
-    fn from_str(template: &str) -> Result<CompiledSt, Self::Err> {
+    fn from_str(template: &str) -> Result<CompiledTemplate, Self::Err> {
         let expressions = StParser::expressions_of(template)?;
-        Ok(CompiledSt::new(template, expressions))
+        Ok(CompiledTemplate::new(template, expressions))
     }
 }
 
@@ -84,10 +84,10 @@ impl Attributes {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Group(HashMap<String, CompiledSt>);
+pub struct Group(HashMap<String, CompiledTemplate>);
 
 impl Group {
-    pub fn new(templates: HashMap<String, CompiledSt>) -> Group {
+    pub fn new(templates: HashMap<String, CompiledTemplate>) -> Group {
         Group(templates)
     }
 
@@ -110,7 +110,7 @@ impl FromStr for Group {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Template {
-    pub imp: CompiledSt,
+    pub imp: CompiledTemplate,
     pub attributes: Attributes,
 }
 
@@ -124,8 +124,8 @@ impl Template {
     }
 }
 
-impl From<CompiledSt> for Template {
-    fn from(compiled: CompiledSt) -> Template {
+impl From<CompiledTemplate> for Template {
+    fn from(compiled: CompiledTemplate) -> Template {
         Template {
             imp: compiled,
             attributes: Attributes::new(),
@@ -139,7 +139,7 @@ mod tests {
 
     fn parse_template(template: &'static str) -> Template {
         template
-            .parse::<CompiledSt>()
+            .parse::<CompiledTemplate>()
             .expect("unexpectedly failed to parse template")
             .into()
     }

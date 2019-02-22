@@ -10,7 +10,7 @@ use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
 use crate::parse::pest::StParser;
-use crate::{CompiledSt, Error, Expr, Group};
+use crate::{CompiledTemplate, Error, Expr, Group};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -131,7 +131,7 @@ impl GroupBody {
         })
     }
 
-    pub fn templates(self) -> HashMap<String, CompiledSt> {
+    pub fn templates(self) -> HashMap<String, CompiledTemplate> {
         self.templates
             .into_iter()
             .map(|st| (st.name.to_string(), st.template_body.into()))
@@ -254,7 +254,7 @@ impl ToTokens for StaticSt {
         let compiled_template = &self.template_body;
         let expanded = quote! {
             templates.insert(#name.to_string(), ::string_template::Template {
-                imp: ::string_template::CompiledSt::new(#template_body, #compiled_template),
+                imp: ::string_template::CompiledTemplate::new(#template_body, #compiled_template),
                 attributes: ::string_template::Attributes::new(),
             });
         };
@@ -286,13 +286,13 @@ impl cmp::PartialEq for TemplateBody {
     }
 }
 
-impl From<TemplateBody> for CompiledSt {
-    fn from(body: TemplateBody) -> CompiledSt {
+impl From<TemplateBody> for CompiledTemplate {
+    fn from(body: TemplateBody) -> CompiledTemplate {
         let TemplateBody {
             literal,
             expressions,
         } = body;
-        CompiledSt::new(literal.value(), expressions)
+        CompiledTemplate::new(literal.value(), expressions)
     }
 }
 
