@@ -4,6 +4,7 @@ use failure::Fail;
 
 use pest::error::Error as PestError;
 
+use crate::parse;
 use crate::parse::pest::Rule;
 
 #[cfg(procmacro2_semver_exempt)]
@@ -134,6 +135,15 @@ impl Error {
 impl From<PestError<Rule>> for Error {
     fn from(rule: PestError<Rule>) -> Error {
         Error::Pest(rule)
+    }
+}
+
+impl From<parse::Error> for Error {
+    fn from(error: parse::Error) -> Error {
+        match error {
+            parse::Error::Pest(error) => Error::Pest(error),
+            parse::Error::Syn(error) => Error::syn("", error),
+        }
     }
 }
 

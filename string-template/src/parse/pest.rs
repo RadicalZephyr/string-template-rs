@@ -3,7 +3,8 @@ use pest::Parser;
 
 use pest_derive::Parser;
 
-use crate::{Error, Expr};
+use crate::parse::Error;
+use crate::Expr;
 
 #[derive(Copy, Clone, Debug, Parser)]
 #[grammar = "st.pest"]
