@@ -19,8 +19,8 @@ multi_line_body = ${ multi_line_literal? ~ ( expression ~ multi_line_literal?)* 
 multi_line_literal = ${ multi_line_literal_char+ }
 multi_line_literal_char = _{ ' '..'!' | '#'..';' | "=" | '?'..'~' | NEWLINE }
 
-expression = @{ "<" ~ expr ~ ">" }
-expr = @{ field_reference }
+expression = _{ "<" ~ expr ~ ">" }
+expr = ${ field_reference }
 field_reference = @{ identifier }
 
 WHITESPACE = _{ " " }

@@ -43,49 +43,6 @@ impl CompiledSt {
         }
     }
 
-    pub fn compile(template: impl Into<String>) -> CompiledSt {
-        enum State {
-            Literal,
-            Expression,
-        };
-
-        let template = template.into();
-        let mut expressions = vec![];
-
-        let mut state = State::Literal;
-        let mut start = 0;
-        let mut i = 0;
-        for c in template.bytes() {
-            match c {
-                b'<' => {
-                    expressions.push(Expr::Literal(template[start..i].into()));
-                    state = State::Expression;
-                    i += 1;
-                    start = i;
-                }
-                b'>' => {
-                    expressions.push(Expr::Attribute(template[start..i].into()));
-                    state = State::Literal;
-                    i += 1;
-                    start = i;
-                }
-                _ => i += 1,
-            }
-        }
-        match state {
-            State::Literal => {
-                expressions.push(Expr::Literal(template[start..i].into()));
-            }
-            State::Expression => panic!("encountered unfinished template expression"),
-        }
-
-        println!("{:?}", expressions);
-        CompiledSt {
-            template,
-            expressions,
-        }
-    }
-
     pub fn render(&self, attributes: &Attributes) -> String {
         let mut out = String::new();
         for expr in &self.expressions {
@@ -146,13 +103,6 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn new(template: impl Into<String>) -> Template {
-        Template {
-            imp: CompiledSt::compile(template),
-            attributes: Attributes::new(),
-        }
-    }
-
     pub fn add(&mut self, name: impl Into<String>, value: impl Into<String>) {
         self.attributes.insert(name, value);
     }
@@ -178,16 +128,22 @@ impl FromStr for Template {
 mod tests {
     use super::*;
 
+    fn parse_template(template: &'static str) -> Template {
+        template
+            .parse::<Template>()
+            .expect("unexpectedly failed to parse template")
+    }
+
     #[test]
     fn renders_hello_world() {
-        let mut hello = Template::new("Hello, <name>!");
+        let mut hello = parse_template("Hello, <name>!");
         hello.add("name", "World");
         assert_eq!("Hello, World!", format!("{}", hello.render()));
     }
 
     #[test]
     fn renders_multiple_attributes() {
-        let mut hello = Template::new("Hello, <title><name>!");
+        let mut hello = parse_template("Hello, <title><name>!");
         hello.add("name", "World");
         hello.add("title", "Old ");
         assert_eq!("Hello, Old World!", format!("{}", hello.render()));
@@ -195,7 +151,7 @@ mod tests {
 
     #[test]
     fn renders_missing_attributes_as_empty_string() {
-        let mut hello = Template::new("Hello, <title><name>!");
+        let mut hello = parse_template("Hello, <title><name>!");
         hello.add("name", "World");
         assert_eq!("Hello, World!", format!("{}", hello.render()));
     }
@@ -215,7 +171,7 @@ mod tests {
 
     #[test]
     fn renders_template_from_group() {
-        let group: Group = parse_group(
+        let group = parse_group(
             r#"
 a() ::= "FOO"
 "#,

@@ -286,7 +286,7 @@ impl cmp::PartialEq for TemplateBody {
 
 impl From<TemplateBody> for Template {
     fn from(template: TemplateBody) -> Template {
-        Template::new(template.to_string())
+        template.to_string().parse().unwrap()
     }
 }
 

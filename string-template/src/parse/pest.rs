@@ -17,6 +17,10 @@ impl StParser {
                     let literal = expression.as_str();
                     Ok(Expr::Literal(literal.to_string()))
                 }
+                Rule::expr => {
+                    let literal = expression.as_str();
+                    Ok(Expr::Attribute(literal.to_string()))
+                }
                 rule => unimplemented!("{:?}", rule),
             }
         }
@@ -163,5 +167,14 @@ foo
     fn parse_into_template() {
         let template: Template = "foo".parse().unwrap();
         assert_eq!("foo", template.render());
+    }
+
+    #[test]
+    fn parse_into_expression_template() {
+        let mut hello: Template = "Hello <name>!"
+            .parse()
+            .expect("unexpectedly failed to parse template");
+        hello.add("name", "World");
+        assert_eq!("Hello World!", hello.render());
     }
 }
