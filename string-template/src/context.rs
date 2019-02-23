@@ -36,12 +36,19 @@ impl Context {
     }
 
     pub fn concat(&mut self, new_value: Context) {
-        if self.data.is_null() {
-            mem::replace(self, new_value);
-        } else {
-            let previous = mem::replace(self, Context::null());
-            let new = Json::Array(vec![previous.into_inner(), new_value.into_inner()]);
-            mem::replace(self, Context::new(new));
+        match self.data {
+            Json::Null => {
+                mem::replace(self, new_value);
+                ()
+            }
+
+            Json::Array(ref mut list) => list.push(new_value.into_inner()),
+
+            ref mut node => {
+                let previous = node.take();
+                let new = Json::Array(vec![previous, new_value.into_inner()]);
+                mem::replace(node, new);
+            }
         }
     }
 

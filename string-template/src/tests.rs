@@ -39,6 +39,16 @@ fn renders_chained_attributes() {
 }
 
 #[test]
+fn renders_multiple_chained_attributes() {
+    let mut template = parse_template("<names>!");
+    template
+        .add("names", "Ter")
+        .add("names", "Tom")
+        .add("names", 1);
+    assert_eq!("TerTom1!", template.render());
+}
+
+#[test]
 fn renders_nested_attributes() {
     #[derive(Serialize)]
     struct Person {
