@@ -12,16 +12,28 @@ pub struct StParser;
 
 impl StParser {
     pub fn expressions_of(template: &str) -> Result<Vec<Expr>, Error> {
+        fn parse_expr(expr: Pair<Rule>) -> Result<Expr, Error> {
+            match expr.as_rule() {
+                Rule::field_reference => {
+                    let literal = expr.as_str();
+                    Ok(Expr::Attribute(literal.to_string()))
+                }
+                Rule::template_include => {
+                    let mut content = expr.into_inner();
+                    let literal = content.next().unwrap().as_str();
+                    Ok(Expr::Include(literal.to_string(), vec![]))
+                }
+                rule => unimplemented!("{:?}", rule),
+            }
+        }
+
         fn parse_expression(expression: Pair<Rule>) -> Result<Expr, Error> {
             match expression.as_rule() {
                 Rule::single_line_literal | Rule::multi_line_literal => {
                     let literal = expression.as_str();
                     Ok(Expr::Literal(literal.to_string()))
                 }
-                Rule::expr => {
-                    let literal = expression.as_str();
-                    Ok(Expr::Attribute(literal.to_string()))
-                }
+                Rule::expr => parse_expr(expression.into_inner().next().unwrap()),
                 rule => unimplemented!("{:?}", rule),
             }
         }
@@ -40,7 +52,6 @@ impl StParser {
 mod tests {
     use super::*;
 
-    use pest::iterators::Pairs;
     use pest::{consumes_to, parses_to};
 
     use crate::{CompiledTemplate, Template};

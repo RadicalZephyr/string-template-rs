@@ -64,3 +64,26 @@ a(x) ::= "FOO<x>"
     a.add("x", "BAR");
     assert_eq!("FOOBAR", a.render());
 }
+
+#[test]
+fn renders_template_with_include() {
+    let group = parse_group(
+        r#"
+a() ::= "FOO<b()>"
+b() ::= "BAR"
+"#,
+    );
+    let a = get_template(&group, "a");
+    assert_eq!("FOOBAR", a.render());
+}
+
+#[test]
+fn renders_template_with_include_missing_inner_template() {
+    let group = parse_group(
+        r#"
+a() ::= "FOO<b()>"
+"#,
+    );
+    let a = get_template(&group, "a");
+    assert_eq!("FOO", a.render());
+}

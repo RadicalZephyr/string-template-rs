@@ -327,6 +327,9 @@ impl ToTokens for Expr {
             Expr::Attribute(name) => {
                 quote! { ::string_template::Expr::Attribute(#name.to_string()) }
             }
+            Expr::Include(name, arg_names) => {
+                quote! { ::string_template::Expr::Include(#name, vec![ #( #arg_names ),* ]) }
+            }
         };
         tokens.extend(expanded);
     }

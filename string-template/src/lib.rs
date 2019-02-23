@@ -22,6 +22,7 @@ mod tests;
 pub enum Expr {
     Literal(String),
     Attribute(String),
+    Include(String, Vec<String>),
 }
 
 impl Default for Expr {

@@ -20,7 +20,8 @@ multi_line_literal = ${ multi_line_literal_char+ }
 multi_line_literal_char = _{ ' '..'!' | '#'..';' | "=" | '?'..'~' | NEWLINE }
 
 expression = _{ "<" ~ expr ~ ">" }
-expr = ${ field_reference }
+expr = ${ template_include | field_reference }
 field_reference = @{ identifier }
+template_include = { identifier ~ formal_args_list }
 
 WHITESPACE = _{ " " }
