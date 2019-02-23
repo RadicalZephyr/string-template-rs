@@ -43,6 +43,13 @@ fn renders_nested_attributes() {
     assert_eq!("Hello, John!", format!("{}", hello.render()));
 }
 
+#[test]
+fn renders_an_attribute_list_concatenated() {
+    let mut hello = parse_template("Hello, <names>!");
+    hello.add("names", &["Jeff", "John", "Carl"]);
+    assert_eq!("Hello, JeffJohnCarl!", format!("{}", hello.render()));
+}
+
 fn parse_group(group: &'static str) -> Group {
     match group.parse() {
         Ok(group) => group,
