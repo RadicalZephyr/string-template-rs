@@ -1,6 +1,8 @@
 #![recursion_limit = "128"]
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::str::FromStr;
 
 mod error;
@@ -86,19 +88,35 @@ impl Attributes {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Group(HashMap<String, CompiledTemplate>);
+type TemplateMap = HashMap<String, CompiledTemplate>;
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Group(Rc<RefCell<TemplateMap>>);
 
 impl Group {
-    pub fn new(templates: HashMap<String, CompiledTemplate>) -> Group {
-        Group(templates)
+    pub fn new() -> Group {
+        Group::default()
     }
 
     pub fn get(&self, template_name: impl AsRef<str>) -> Option<Template> {
+        let group = self.clone();
         self.0
+            .borrow()
             .get(template_name.as_ref())
             .cloned()
-            .map(Template::from)
+            .map(move |imp| Template::new(group, imp))
+    }
+}
+
+impl Clone for Group {
+    fn clone(&self) -> Group {
+        Group(Rc::clone(&self.0))
+    }
+}
+
+impl From<TemplateMap> for Group {
+    fn from(templates: TemplateMap) -> Group {
+        Group(Rc::new(RefCell::new(templates)))
     }
 }
 
@@ -113,11 +131,20 @@ impl FromStr for Group {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Template {
+    pub group: Group,
     pub imp: CompiledTemplate,
     pub attributes: Attributes,
 }
 
 impl Template {
+    pub fn new(group: Group, imp: CompiledTemplate) -> Template {
+        Template {
+            group,
+            imp,
+            attributes: Attributes::new(),
+        }
+    }
+
     pub fn add(&mut self, name: impl Into<String>, value: impl Into<String>) {
         self.attributes.insert(name, value);
     }
@@ -130,6 +157,7 @@ impl Template {
 impl From<CompiledTemplate> for Template {
     fn from(compiled: CompiledTemplate) -> Template {
         Template {
+            group: Group::default(),
             imp: compiled,
             attributes: Attributes::new(),
         }

@@ -165,7 +165,7 @@ impl Default for GroupBody {
 impl From<GroupBody> for Group {
     fn from(static_group: GroupBody) -> Group {
         let templates = static_group.templates();
-        Group(templates)
+        Group::from(templates)
     }
 }
 
