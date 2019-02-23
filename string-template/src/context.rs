@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, mem};
 
 use serde::Serialize;
 use serde_json::value::{to_value, Value as Json};
@@ -7,7 +7,7 @@ use crate::Error;
 
 /// The context wraps the attribute values attached to a template.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Context {
     data: Json,
 }
@@ -18,11 +18,35 @@ impl Context {
         Context { data: Json::Null }
     }
 
+    pub fn new(data: Json) -> Context {
+        Context { data }
+    }
+
     /// Create a context with given data
     pub fn wraps<T: Serialize>(e: T) -> Result<Context, Error> {
         to_value(e)
             .map_err(Error::from)
             .map(|d| Context { data: d })
+    }
+
+    pub fn array() -> Context {
+        Context {
+            data: Json::Array(vec![]),
+        }
+    }
+
+    pub fn concat(&mut self, new_value: Context) {
+        if self.data.is_null() {
+            mem::replace(self, new_value);
+        } else {
+            let previous = mem::replace(self, Context::null());
+            let new = Json::Array(vec![previous.into_inner(), new_value.into_inner()]);
+            mem::replace(self, Context::new(new));
+        }
+    }
+
+    pub fn into_inner(self) -> Json {
+        self.data
     }
 }
 

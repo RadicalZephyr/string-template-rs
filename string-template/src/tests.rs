@@ -32,6 +32,13 @@ fn renders_missing_attributes_as_empty_string() {
 }
 
 #[test]
+fn renders_chained_attributes() {
+    let mut template = parse_template("<x>:<names>!");
+    template.add("names", "Ter").add("names", "Tom").add("x", 1);
+    assert_eq!("1:TerTom!", template.render());
+}
+
+#[test]
 fn renders_nested_attributes() {
     #[derive(Serialize)]
     struct Person {

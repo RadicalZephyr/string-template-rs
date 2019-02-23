@@ -81,7 +81,7 @@ impl Attributes {
     }
 
     pub fn insert(&mut self, name: impl Into<String>, value: Context) {
-        self.0.insert(name.into(), value);
+        self.0.entry(name.into()).or_default().concat(value);
     }
 
     pub fn get(&self, name: impl AsRef<str>) -> &Context {
@@ -149,8 +149,9 @@ impl Template {
         }
     }
 
-    pub fn add(&mut self, name: impl Into<String>, value: impl Serialize) {
+    pub fn add(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self {
         self.attributes.insert(name, Context::wraps(value).unwrap());
+        self
     }
 
     pub fn render(&self) -> String {
