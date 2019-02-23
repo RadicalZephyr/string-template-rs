@@ -71,12 +71,14 @@ impl FromStr for CompiledTemplate {
     }
 }
 
+type AttributeMap = HashMap<String, String>;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Attributes(HashMap<String, String>);
+pub struct Attributes(AttributeMap);
 
 impl Attributes {
     pub fn new() -> Attributes {
-        Attributes(HashMap::new())
+        Attributes(AttributeMap::new())
     }
 
     pub fn insert(&mut self, name: impl Into<String>, value: impl Into<String>) {
