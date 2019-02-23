@@ -8,6 +8,9 @@ use std::str::FromStr;
 mod error;
 pub use crate::error::Error;
 
+mod interpreter;
+pub use crate::interpreter::Interpreter;
+
 mod parse;
 pub use crate::parse::pest::StParser;
 pub use crate::parse::syn::{GroupBody, StaticGroup};
@@ -46,19 +49,6 @@ impl CompiledTemplate {
             template: template.into(),
             expressions,
         }
-    }
-
-    pub fn render(&self, attributes: &Attributes) -> String {
-        let mut out = String::new();
-        for expr in &self.expressions {
-            match expr {
-                Expr::Literal(s) => out.push_str(s),
-                Expr::Attribute(name) => {
-                    out.push_str(attributes.get(name).unwrap_or(&String::new()))
-                }
-            }
-        }
-        out
     }
 }
 
@@ -152,7 +142,10 @@ impl Template {
     }
 
     pub fn render(&self) -> String {
-        self.imp.render(&self.attributes)
+        let template = self.imp.clone();
+        let group = self.group.clone();
+        let interpreter = Interpreter::new(group);
+        interpreter.render(&template, &self.attributes)
     }
 }
 
