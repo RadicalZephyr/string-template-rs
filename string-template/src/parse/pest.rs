@@ -45,10 +45,6 @@ mod tests {
 
     use crate::{CompiledTemplate, Template};
 
-    fn parse_file(template: &'static str) -> Pairs<'_, Rule> {
-        StParser::parse(Rule::file, template).expect("unexpectedly failed to parse template")
-    }
-
     #[test]
     fn parse_no_arg_template() {
         parses_to! {
