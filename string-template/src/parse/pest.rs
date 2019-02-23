@@ -171,7 +171,7 @@ foo
     }
 
     #[test]
-    fn parse_into_expression_template() {
+    fn parse_into_template_with_expression() {
         let mut hello: Template = parse_template("Hello <name>!");
         hello.add("name", "World");
         assert_eq!("Hello World!", hello.render());
