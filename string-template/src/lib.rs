@@ -5,6 +5,11 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use serde::Serialize;
+
+mod context;
+pub use crate::context::Context;
+
 mod error;
 pub use crate::error::Error;
 
@@ -62,9 +67,9 @@ impl FromStr for CompiledTemplate {
     }
 }
 
-type AttributeMap = HashMap<String, String>;
+type AttributeMap = HashMap<String, Context>;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct Attributes(AttributeMap);
 
 impl Attributes {
@@ -72,11 +77,11 @@ impl Attributes {
         Attributes(AttributeMap::new())
     }
 
-    pub fn insert(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        self.0.insert(name.into(), value.into());
+    pub fn insert(&mut self, name: impl Into<String>, value: Context) {
+        self.0.insert(name.into(), value);
     }
 
-    pub fn get(&self, name: impl AsRef<str>) -> Option<&String> {
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&Context> {
         self.0.get(name.as_ref())
     }
 }
@@ -122,7 +127,7 @@ impl FromStr for Group {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct Template {
     pub group: Group,
     pub imp: CompiledTemplate,
@@ -138,8 +143,8 @@ impl Template {
         }
     }
 
-    pub fn add(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        self.attributes.insert(name, value);
+    pub fn add(&mut self, name: impl Into<String>, value: impl Serialize) {
+        self.attributes.insert(name, Context::wraps(value).unwrap());
     }
 
     pub fn render(&self) -> String {

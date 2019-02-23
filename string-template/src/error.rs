@@ -4,19 +4,24 @@ use failure::Fail;
 
 use pest::error::Error as PestError;
 
+use serde_json::error::Error as SerdeError;
+
 use crate::parse;
 use crate::parse::pest::Rule;
 
 #[cfg(procmacro2_semver_exempt)]
 use proc_macro2::LineColumn;
 
-#[derive(Clone, Debug, Fail, PartialEq, Eq)]
+#[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "{}", _0)]
     Syn(String),
 
     #[fail(display = "{:?}", _0)]
     Pest(PestError<Rule>),
+
+    #[fail(display = "{:?}", _0)]
+    SerdeJson(SerdeError),
 }
 
 #[allow(dead_code)]
@@ -144,6 +149,12 @@ impl From<parse::Error> for Error {
             parse::Error::Pest(error) => Error::Pest(error),
             parse::Error::Syn(error) => Error::syn("", error),
         }
+    }
+}
+
+impl From<SerdeError> for Error {
+    fn from(error: SerdeError) -> Error {
+        Error::SerdeJson(error)
     }
 }
 
