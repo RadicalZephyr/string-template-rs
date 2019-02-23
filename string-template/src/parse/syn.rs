@@ -10,7 +10,8 @@ use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
 use crate::parse::pest::StParser;
-use crate::{CompiledTemplate, Error, Expr, Group};
+use crate::parse::Error;
+use crate::{CompiledTemplate, Expr, Group};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
