@@ -1,4 +1,4 @@
-use pest::iterators::Pair;
+use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 
 use pest_derive::Parser;
@@ -6,38 +6,51 @@ use pest_derive::Parser;
 use crate::parse::Error;
 use crate::Expr;
 
+fn parse_field_reference(mut exprs: Pairs<Rule>) -> Result<Expr, Error> {
+    let name = exprs.next().unwrap().as_str().to_string();
+    let path: Vec<String> = exprs
+        .map(|expr| match expr.as_rule() {
+            Rule::identifier => expr.as_str().to_string(),
+            rule => unreachable!("unexpected rule: {:?}", rule),
+        })
+        .collect();
+
+    if path.is_empty() {
+        Ok(Expr::Attribute(name))
+    } else {
+        Ok(Expr::AttributePath(name, path))
+    }
+}
+
+fn parse_expr(expr: Pair<Rule>) -> Result<Expr, Error> {
+    match expr.as_rule() {
+        Rule::field_reference => parse_field_reference(expr.into_inner()),
+        Rule::template_include => {
+            let mut content = expr.into_inner();
+            let literal = content.next().unwrap().as_str();
+            Ok(Expr::Include(literal.to_string(), vec![]))
+        }
+        rule => unimplemented!("{:?}", rule),
+    }
+}
+
+fn parse_expression(expression: Pair<Rule>) -> Result<Expr, Error> {
+    match expression.as_rule() {
+        Rule::single_line_literal | Rule::multi_line_literal => {
+            let literal = expression.as_str();
+            Ok(Expr::Literal(literal.to_string()))
+        }
+        Rule::expr => parse_expr(expression.into_inner().next().unwrap()),
+        rule => unimplemented!("{:?}", rule),
+    }
+}
+
 #[derive(Copy, Clone, Debug, Parser)]
 #[grammar = "st.pest"]
 pub struct StParser;
 
 impl StParser {
     pub fn expressions_of(template: &str) -> Result<Vec<Expr>, Error> {
-        fn parse_expr(expr: Pair<Rule>) -> Result<Expr, Error> {
-            match expr.as_rule() {
-                Rule::field_reference => {
-                    let literal = expr.as_str();
-                    Ok(Expr::Attribute(literal.to_string()))
-                }
-                Rule::template_include => {
-                    let mut content = expr.into_inner();
-                    let literal = content.next().unwrap().as_str();
-                    Ok(Expr::Include(literal.to_string(), vec![]))
-                }
-                rule => unimplemented!("{:?}", rule),
-            }
-        }
-
-        fn parse_expression(expression: Pair<Rule>) -> Result<Expr, Error> {
-            match expression.as_rule() {
-                Rule::single_line_literal | Rule::multi_line_literal => {
-                    let literal = expression.as_str();
-                    Ok(Expr::Literal(literal.to_string()))
-                }
-                Rule::expr => parse_expr(expression.into_inner().next().unwrap()),
-                rule => unimplemented!("{:?}", rule),
-            }
-        }
-
         let mut pairs = StParser::parse(Rule::multi_line_body, template)?;
         pairs
             .next()

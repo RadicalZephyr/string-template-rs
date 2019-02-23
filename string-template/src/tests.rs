@@ -1,5 +1,7 @@
 use super::*;
 
+use serde_derive::Serialize;
+
 fn parse_template(template: &'static str) -> Template {
     template
         .parse::<CompiledTemplate>()
@@ -27,6 +29,18 @@ fn renders_missing_attributes_as_empty_string() {
     let mut hello = parse_template("Hello, <title><name>!");
     hello.add("name", "World");
     assert_eq!("Hello, World!", format!("{}", hello.render()));
+}
+
+#[test]
+fn renders_nested_attributes() {
+    #[derive(Serialize)]
+    struct Person {
+        name: &'static str,
+    };
+    let mut hello = parse_template("Hello, <person.name>!");
+    let john = Person { name: "John" };
+    hello.add("person", &john);
+    assert_eq!("Hello, John!", format!("{}", hello.render()));
 }
 
 fn parse_group(group: &'static str) -> Group {

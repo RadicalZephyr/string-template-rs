@@ -21,7 +21,7 @@ multi_line_literal_char = _{ ' '..'!' | '#'..';' | "=" | '?'..'~' | NEWLINE }
 
 expression = _{ "<" ~ expr ~ ">" }
 expr = ${ template_include | field_reference }
-field_reference = @{ identifier }
+field_reference = @{ identifier ~ ( "." ~ identifier )* }
 template_include = { identifier ~ formal_args_list }
 
 WHITESPACE = _{ " " }

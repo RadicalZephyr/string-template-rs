@@ -26,6 +26,20 @@ impl Context {
     }
 }
 
+impl Context {
+    pub fn navigate(&self, path: &[String]) -> Context {
+        let mut node = &self.data;
+        for segment in path {
+            match node {
+                Json::Object(map) => node = map.get(segment).unwrap_or(&Json::Null),
+                _ => break,
+            }
+        }
+
+        Context::wraps(node).unwrap()
+    }
+}
+
 impl fmt::Display for Context {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.data.render())

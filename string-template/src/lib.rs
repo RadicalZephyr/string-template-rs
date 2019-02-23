@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use lazy_static::lazy_static;
+
 use serde::Serialize;
 
 mod context;
@@ -27,6 +29,7 @@ mod tests;
 pub enum Expr {
     Literal(String),
     Attribute(String),
+    AttributePath(String, Vec<String>),
     Include(String, Vec<String>),
 }
 
@@ -81,8 +84,11 @@ impl Attributes {
         self.0.insert(name.into(), value);
     }
 
-    pub fn get(&self, name: impl AsRef<str>) -> Option<&Context> {
-        self.0.get(name.as_ref())
+    pub fn get(&self, name: impl AsRef<str>) -> &Context {
+        lazy_static! {
+            static ref null_context: Context = Context::null();
+        }
+        self.0.get(name.as_ref()).unwrap_or(&null_context)
     }
 }
 
