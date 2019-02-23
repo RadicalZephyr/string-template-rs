@@ -2,6 +2,17 @@ use super::*;
 
 use serde_derive::Serialize;
 
+trait TemplateTestExt {
+    fn add_expect(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self;
+}
+
+impl TemplateTestExt for Template {
+    fn add_expect(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self {
+        self.add(name, value)
+            .expect("unexpectedly failed to add attribute to template")
+    }
+}
+
 fn parse_template(template: &'static str) -> Template {
     template
         .parse::<CompiledTemplate>()
@@ -12,29 +23,32 @@ fn parse_template(template: &'static str) -> Template {
 #[test]
 fn renders_hello_world() {
     let mut hello = parse_template("Hello, <name>!");
-    hello.add("name", "World");
+    hello.add_expect("name", "World");
     assert_eq!("Hello, World!", format!("{}", hello.render()));
 }
 
 #[test]
 fn renders_multiple_attributes() {
     let mut hello = parse_template("Hello, <title><name>!");
-    hello.add("name", "World");
-    hello.add("title", "Old ");
+    hello.add_expect("name", "World");
+    hello.add_expect("title", "Old ");
     assert_eq!("Hello, Old World!", format!("{}", hello.render()));
 }
 
 #[test]
 fn renders_missing_attributes_as_empty_string() {
     let mut hello = parse_template("Hello, <title><name>!");
-    hello.add("name", "World");
+    hello.add_expect("name", "World");
     assert_eq!("Hello, World!", format!("{}", hello.render()));
 }
 
 #[test]
 fn renders_chained_attributes() {
     let mut template = parse_template("<x>:<names>!");
-    template.add("names", "Ter").add("names", "Tom").add("x", 1);
+    template
+        .add_expect("names", "Ter")
+        .add_expect("names", "Tom")
+        .add_expect("x", 1);
     assert_eq!("1:TerTom!", template.render());
 }
 
@@ -42,9 +56,9 @@ fn renders_chained_attributes() {
 fn renders_multiple_chained_attributes() {
     let mut template = parse_template("<names>!");
     template
-        .add("names", "Ter")
-        .add("names", "Tom")
-        .add("names", 1);
+        .add_expect("names", "Ter")
+        .add_expect("names", "Tom")
+        .add_expect("names", 1);
     assert_eq!("TerTom1!", template.render());
 }
 
@@ -56,14 +70,14 @@ fn renders_nested_attributes() {
     };
     let mut hello = parse_template("Hello, <person.name>!");
     let john = Person { name: "John" };
-    hello.add("person", &john);
+    hello.add_expect("person", &john);
     assert_eq!("Hello, John!", format!("{}", hello.render()));
 }
 
 #[test]
 fn renders_an_attribute_list_concatenated() {
     let mut hello = parse_template("Hello, <names>!");
-    hello.add("names", &["Jeff", "John", "Carl"]);
+    hello.add_expect("names", &["Jeff", "John", "Carl"]);
     assert_eq!("Hello, JeffJohnCarl!", format!("{}", hello.render()));
 }
 
@@ -99,7 +113,7 @@ a(x) ::= "FOO<x>"
 "#,
     );
     let mut a = get_template(&group, "a");
-    a.add("x", "BAR");
+    a.add_expect("x", "BAR");
     assert_eq!("FOOBAR", a.render());
 }
 

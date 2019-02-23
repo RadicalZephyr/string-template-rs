@@ -149,9 +149,13 @@ impl Template {
         }
     }
 
-    pub fn add(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self {
+    pub fn add(
+        &mut self,
+        name: impl Into<String>,
+        value: impl Serialize,
+    ) -> Result<&mut Self, Error> {
         self.attributes.insert(name, Context::wraps(value).unwrap());
-        self
+        Ok(self)
     }
 
     pub fn render(&self) -> String {
