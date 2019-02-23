@@ -10,7 +10,7 @@ pub enum Error {
     Parse(ParseError),
 
     #[fail(display = "{:?}", _0)]
-    SerdeJson(SerdeError),
+    Serde(SerdeError),
 }
 
 impl From<ParseError> for Error {
@@ -21,7 +21,7 @@ impl From<ParseError> for Error {
 
 impl From<SerdeError> for Error {
     fn from(error: SerdeError) -> Error {
-        Error::SerdeJson(error)
+        Error::Serde(error)
     }
 }
 
