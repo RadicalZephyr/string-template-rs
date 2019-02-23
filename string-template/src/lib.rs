@@ -189,4 +189,16 @@ a() ::= "FOO"
         let a = get_template(&group, "a");
         assert_eq!("FOO", a.render());
     }
+
+    #[test]
+    fn renders_template_with_attribute_from_group() {
+        let group = parse_group(
+            r#"
+a(x) ::= "FOO<x>"
+"#,
+        );
+        let mut a = get_template(&group, "a");
+        a.add("x", "BAR");
+        assert_eq!("FOOBAR", a.render());
+    }
 }
