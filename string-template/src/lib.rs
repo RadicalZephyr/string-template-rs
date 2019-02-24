@@ -154,7 +154,7 @@ impl Template {
         name: impl Into<String>,
         value: impl Serialize,
     ) -> Result<&mut Self, Error> {
-        self.attributes.insert(name, Context::wraps(value).unwrap());
+        self.attributes.insert(name, Context::wraps(value)?);
         Ok(self)
     }
 
