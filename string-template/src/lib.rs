@@ -72,7 +72,7 @@ impl FromStr for CompiledTemplate {
 
 type AttributeMap = HashMap<String, Context>;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Attributes(AttributeMap);
 
 impl Attributes {
@@ -133,7 +133,7 @@ impl FromStr for Group {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Template {
     pub group: Group,
     pub imp: CompiledTemplate,

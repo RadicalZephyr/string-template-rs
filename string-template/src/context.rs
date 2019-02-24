@@ -7,7 +7,7 @@ use crate::Error;
 
 /// The context wraps the attribute values attached to a template.
 ///
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Context {
     data: Json,
 }

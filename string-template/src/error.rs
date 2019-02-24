@@ -11,6 +11,21 @@ pub enum Error {
 
     #[fail(display = "{:?}", _0)]
     Serde(SerdeError),
+
+    #[fail(display = "no such attribute: {}", _0)]
+    NoSuchAttribute(String),
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Error) -> bool {
+        use self::Error::*;
+
+        match (self, other) {
+            (Parse(_), Parse(_)) | (Serde(_), Serde(_)) => true,
+            (NoSuchAttribute(name1), NoSuchAttribute(name2)) if name1 == name2 => true,
+            _ => false,
+        }
+    }
 }
 
 impl From<ParseError> for Error {
