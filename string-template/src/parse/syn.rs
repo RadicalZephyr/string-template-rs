@@ -8,7 +8,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
-use crate::parse::pest::StParser;
+use crate::parse::pest::TemplateParser;
 use crate::parse::Error;
 use crate::{CompiledTemplate, Expr, Group, TemplateMap};
 
@@ -302,7 +302,7 @@ impl From<TemplateBody> for CompiledTemplate {
 impl Parse for TemplateBody {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let literal: syn::LitStr = input.parse()?;
-        let expressions = StParser::expressions_of(&literal.value())?;
+        let expressions = TemplateParser::expressions_of(&literal.value())?;
         Ok(TemplateBody {
             literal,
             expressions,

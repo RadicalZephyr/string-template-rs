@@ -1,0 +1,14 @@
+template_body = ${ literal ~ ( expression ~ literal )* }
+literal = @{ literal_char* }
+literal_char = _{ ' '..';' | '='..'~' }
+
+expression = !{ "<" ~ ( template_include | field_reference ) ~ ">" }
+field_reference = { identifier ~ ( "." ~ identifier )* }
+template_include = { identifier ~ args_list }
+
+args_list = _{ "(" ~ args? ~ ")" }
+args = !{ identifier ~ ("," ~ identifier)* }
+
+identifier = @{ ASCII_ALPHA+ }
+
+WHITESPACE = _{ " " }

@@ -36,22 +36,22 @@ fn parse_expr(expr: Pair<Rule>) -> Result<Expr, Error> {
 
 fn parse_expression(expression: Pair<Rule>) -> Result<Expr, Error> {
     match expression.as_rule() {
-        Rule::single_line_literal | Rule::multi_line_literal => {
+        Rule::literal => {
             let literal = expression.as_str();
             Ok(Expr::Literal(literal.to_string()))
         }
-        Rule::expr => parse_expr(expression.into_inner().next().unwrap()),
+        Rule::expression => parse_expr(expression.into_inner().next().unwrap()),
         rule => unimplemented!("{:?}", rule),
     }
 }
 
 #[derive(Copy, Clone, Debug, Parser)]
-#[grammar = "st.pest"]
-pub struct StParser;
+#[grammar = "template.pest"]
+pub struct TemplateParser;
 
-impl StParser {
+impl TemplateParser {
     pub fn expressions_of(template: &str) -> Result<Vec<Expr>, Error> {
-        let mut pairs = StParser::parse(Rule::multi_line_body, template)?;
+        let mut pairs = TemplateParser::parse(Rule::template_body, template)?;
         pairs
             .next()
             .unwrap()
@@ -63,126 +63,7 @@ impl StParser {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use pest::{consumes_to, parses_to};
-
     use crate::{CompiledTemplate, Template};
-
-    #[test]
-    fn parse_no_arg_template() {
-        parses_to! {
-            parser: StParser,
-            input: "a() ::= <<foo>>",
-            rule: Rule::template,
-            tokens: [
-                template(0, 15, [
-                    identifier(0, 1),
-                    template_body(8, 15, [
-                        single_line_body(10, 13, [
-                            single_line_literal(10, 13)
-                        ])
-                    ])
-                ])
-            ]
-        };
-    }
-
-    #[test]
-    fn parse_one_arg_template() {
-        parses_to! {
-            parser: StParser,
-            input: "a(x) ::= <<foo>>",
-            rule: Rule::template,
-            tokens: [
-                template(0, 16, [
-                    identifier(0, 1),
-                    formal_args(2, 3, [
-                        identifier(2, 3),
-                    ]),
-                    template_body(9, 16, [
-                        single_line_body(11, 14, [
-                            single_line_literal(11, 14)
-                        ])
-                    ])
-                ])
-            ]
-        };
-    }
-
-    #[test]
-    fn parse_multiple_arg_template() {
-        parses_to! {
-            parser: StParser,
-            input: "a(x, y, z) ::= <<foo>>",
-            rule: Rule::template,
-            tokens: [
-                template(0, 22, [
-                    identifier(0, 1),
-                    formal_args(2, 9, [
-                        identifier(2, 3),
-                        identifier(5, 6),
-                        identifier(8, 9),
-                    ]),
-                    template_body(15, 22, [
-                        single_line_body(17, 20, [
-                            single_line_literal(17, 20)
-                        ])
-                    ])
-                ])
-            ]
-        };
-    }
-
-    #[test]
-    fn parse_multiple_line_style_template() {
-        parses_to! {
-            parser: StParser,
-            input: r#"a(x, y, z) ::= "foo""#,
-            rule: Rule::template,
-            tokens: [
-                template(0, 20, [
-                    identifier(0, 1),
-                    formal_args(2, 9, [
-                        identifier(2, 3),
-                        identifier(5, 6),
-                        identifier(8, 9),
-                    ]),
-                    template_body(15, 20, [
-                        multi_line_body(16, 19, [
-                            multi_line_literal(16, 19)
-                        ])
-                    ])
-                ])
-            ]
-        };
-    }
-
-    #[test]
-    fn parse_multiple_line_template() {
-        parses_to! {
-            parser: StParser,
-            input: r#"a(x, y, z) ::= "
-foo
-""#,
-            rule: Rule::template,
-            tokens: [
-                template(0, 22, [
-                    identifier(0, 1),
-                    formal_args(2, 9, [
-                        identifier(2, 3),
-                        identifier(5, 6),
-                        identifier(8, 9),
-                    ]),
-                    template_body(15, 22, [
-                        multi_line_body(16, 21, [
-                            multi_line_literal(16, 21)
-                        ])
-                    ])
-                ])
-            ]
-        };
-    }
 
     fn parse_template(template: &'static str) -> Template {
         template.parse::<CompiledTemplate>().unwrap().into()
@@ -197,7 +78,9 @@ foo
     #[test]
     fn parse_into_template_with_expression() {
         let mut hello: Template = parse_template("Hello <name>!");
-        hello.add("name", "World");
+        hello
+            .add("name", "World")
+            .expect("unexpectedly failed to add attribute");
         assert_eq!("Hello World!", hello.render());
     }
 }

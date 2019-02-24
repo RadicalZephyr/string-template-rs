@@ -5,8 +5,6 @@ template = { identifier ~ formal_args_list ~ "::=" ~ template_body }
 formal_args_list = _{ "(" ~ formal_args? ~ ")" }
 formal_args = !{ identifier ~ ("," ~ identifier)* }
 
-identifier = ${ ASCII_ALPHA+ }
-
 template_body = ${ single_line_delimited_body | multi_line_delimited_body }
 
 single_line_delimited_body = _{ "<<" ~ single_line_body ~ ">>" }
@@ -19,9 +17,3 @@ multi_line_body = ${ multi_line_literal? ~ ( expression ~ multi_line_literal?)* 
 multi_line_literal = ${ multi_line_literal_char+ }
 multi_line_literal_char = _{ ' '..'!' | '#'..';' | "=" | '?'..'~' | NEWLINE }
 
-expression = _{ "<" ~ expr ~ ">" }
-expr = ${ template_include | field_reference }
-field_reference = @{ identifier ~ ( "." ~ identifier )* }
-template_include = { identifier ~ formal_args_list }
-
-WHITESPACE = _{ " " }

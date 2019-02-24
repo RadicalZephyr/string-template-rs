@@ -19,7 +19,7 @@ mod interpreter;
 pub use crate::interpreter::Interpreter;
 
 mod parse;
-pub use crate::parse::pest::StParser;
+pub use crate::parse::pest::TemplateParser;
 pub use crate::parse::syn::{GroupBody, StaticGroup};
 
 #[cfg(test)]
@@ -65,7 +65,7 @@ impl FromStr for CompiledTemplate {
     type Err = Error;
 
     fn from_str(template: &str) -> Result<CompiledTemplate, Self::Err> {
-        let expressions = StParser::expressions_of(template)?;
+        let expressions = TemplateParser::expressions_of(template)?;
         Ok(CompiledTemplate::new(template, expressions))
     }
 }
