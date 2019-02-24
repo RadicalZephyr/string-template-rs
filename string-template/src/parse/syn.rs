@@ -9,7 +9,7 @@ use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
 use crate::parse::pest::TemplateParser;
 use crate::parse::Error;
-use crate::{CompiledTemplate, Expr, Group, TemplateMap};
+use crate::{CompiledTemplate, Expr, Group as RuntimeGroup, TemplateMap};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -21,16 +21,16 @@ impl Parse for NoneDelimiter {
 }
 
 #[derive(Clone)]
-pub struct StaticGroup {
+pub struct Group {
     visibility: Visibility,
     group_name: Ident,
     brace_token: token::Brace,
     group: GroupBody,
 }
 
-impl StaticGroup {
-    pub fn new(visibility: Visibility, group_name: Ident) -> StaticGroup {
-        StaticGroup {
+impl Group {
+    pub fn new(visibility: Visibility, group_name: Ident) -> Group {
+        Group {
             visibility,
             group_name,
             brace_token: Default::default(),
@@ -38,12 +38,12 @@ impl StaticGroup {
         }
     }
 
-    pub fn parse_str(template: impl AsRef<str>) -> Result<StaticGroup, Error> {
+    pub fn parse_str(template: impl AsRef<str>) -> Result<Group, Error> {
         syn::parse_str(template.as_ref()).map_err(|e| Error::syn(template, e))
     }
 }
 
-impl fmt::Debug for StaticGroup {
+impl fmt::Debug for Group {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Group")
             .field("group_name", &self.group_name)
@@ -51,13 +51,13 @@ impl fmt::Debug for StaticGroup {
     }
 }
 
-impl cmp::PartialEq for StaticGroup {
+impl cmp::PartialEq for Group {
     fn eq(&self, other: &Self) -> bool {
         self.group_name == other.group_name
     }
 }
 
-impl Parse for StaticGroup {
+impl Parse for Group {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let visibility: Visibility = input.parse()?;
         input.parse::<Token![static]>()?;
@@ -66,7 +66,7 @@ impl Parse for StaticGroup {
         let content;
         let brace_token = braced!(content in input);
         let group = GroupBody::new(visibility.clone(), &content)?;
-        Ok(StaticGroup {
+        Ok(Group {
             visibility,
             group_name,
             brace_token,
@@ -75,7 +75,7 @@ impl Parse for StaticGroup {
     }
 }
 
-impl ToTokens for StaticGroup {
+impl ToTokens for Group {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ty = quote! { ::string_template::Group };
         let templates = &self.group;
@@ -118,12 +118,12 @@ impl ToTokens for StaticGroup {
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupBody {
     visibility: Visibility,
-    templates: Punctuated<StaticSt, NoneDelimiter>,
+    templates: Punctuated<Template, NoneDelimiter>,
 }
 
 impl GroupBody {
     pub fn new(visibility: Visibility, input: ParseStream) -> syn::Result<GroupBody> {
-        let templates = input.parse_terminated(StaticSt::parse)?;
+        let templates = input.parse_terminated(Template::parse)?;
         Ok(GroupBody {
             visibility,
             templates,
@@ -161,10 +161,10 @@ impl Default for GroupBody {
     }
 }
 
-impl From<GroupBody> for Group {
-    fn from(static_group: GroupBody) -> Group {
+impl From<GroupBody> for RuntimeGroup {
+    fn from(static_group: GroupBody) -> RuntimeGroup {
         let templates = static_group.templates();
-        Group::from(templates)
+        RuntimeGroup::from(templates)
     }
 }
 
@@ -192,14 +192,14 @@ impl ToTokens for GroupBody {
 }
 
 #[derive(Clone)]
-pub struct StaticSt {
+pub struct Template {
     name: Ident,
     paren_token: token::Paren,
     formal_args: Punctuated<Ident, Token![,]>,
     template_body: TemplateBody,
 }
 
-impl StaticSt {
+impl Template {
     pub fn access_fn(&self, vis: &Visibility) -> proc_macro2::TokenStream {
         let name = &self.name;
         let name_str = name.to_string();
@@ -211,21 +211,21 @@ impl StaticSt {
     }
 }
 
-impl fmt::Debug for StaticSt {
+impl fmt::Debug for Template {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("StaticSt")
+        f.debug_struct("Template")
             .field("name", &self.name)
             .finish()
     }
 }
 
-impl cmp::PartialEq for StaticSt {
+impl cmp::PartialEq for Template {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
-impl Parse for StaticSt {
+impl Parse for Template {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
         let content;
@@ -237,7 +237,7 @@ impl Parse for StaticSt {
 
         let template_body = input.parse()?;
 
-        Ok(StaticSt {
+        Ok(Template {
             name,
             paren_token,
             formal_args,
@@ -246,7 +246,7 @@ impl Parse for StaticSt {
     }
 }
 
-impl ToTokens for StaticSt {
+impl ToTokens for Template {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.name.to_string();
         let template_body = &self.template_body.to_string();
@@ -351,8 +351,8 @@ mod tests {
 
     use proc_macro2::Span;
 
-    fn parse_static_group(template: &'static str) -> StaticGroup {
-        match StaticGroup::parse_str(template) {
+    fn parse_static_group(template: &'static str) -> Group {
+        match Group::parse_str(template) {
             Ok(actual) => actual,
             Err(error) => {
                 panic!("unexpectedly failed to parse template:\n{}\n", error);
@@ -364,7 +364,7 @@ mod tests {
     fn parse_no_arg_literal_template() {
         assert_eq!(
             parse_static_group(r#"static ref group_a { a() ::= "foo" }"#),
-            StaticGroup::new(
+            Group::new(
                 Visibility::Public(syn::VisPublic {
                     pub_token: token::Pub::default(),
                 }),
