@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::{cmp, fmt};
 
@@ -11,7 +10,7 @@ use syn::{braced, parenthesized, token, Ident, Token, Visibility};
 
 use crate::parse::pest::StParser;
 use crate::parse::Error;
-use crate::{CompiledTemplate, Expr, Group};
+use crate::{CompiledTemplate, Expr, Group, TemplateMap};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct NoneDelimiter;
@@ -132,7 +131,7 @@ impl GroupBody {
         })
     }
 
-    pub fn templates(self) -> HashMap<String, CompiledTemplate> {
+    pub fn templates(self) -> TemplateMap {
         self.templates
             .into_iter()
             .map(|st| (st.name.to_string(), st.template_body.into()))
