@@ -1,5 +1,4 @@
-use std::str::FromStr;
-use std::{cmp, fmt};
+use std::{cmp, fmt, str};
 
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
@@ -169,7 +168,7 @@ impl From<GroupBody> for Group {
     }
 }
 
-impl FromStr for GroupBody {
+impl str::FromStr for GroupBody {
     type Err = Error;
 
     fn from_str(template: &str) -> Result<GroupBody, Self::Err> {
