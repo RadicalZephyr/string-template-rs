@@ -102,7 +102,7 @@ impl ToTokens for StaticGroup {
                         fn init() -> #ty {
                             let mut templates = ::std::collections::HashMap::new();
                             #templates
-                            ::string_template::Group::new(templates)
+                            ::string_template::Group::from(templates)
                         }
 
                         unsafe {
@@ -253,10 +253,13 @@ impl ToTokens for StaticSt {
         let template_body = &self.template_body.to_string();
         let compiled_template = &self.template_body;
         let expanded = quote! {
-            templates.insert(#name.to_string(), ::string_template::Template {
-                imp: ::string_template::CompiledTemplate::new(#template_body, #compiled_template),
-                attributes: ::string_template::Attributes::new(),
-            });
+            templates.insert(
+                #name.to_string(),
+                ::string_template::CompiledTemplate::new(
+                    #template_body,
+                    #compiled_template
+                )
+            );
         };
         tokens.extend(expanded);
     }
