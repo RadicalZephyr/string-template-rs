@@ -65,13 +65,7 @@ impl TemplateParser {
 mod tests {
     use super::*;
 
-    use crate::{CompiledTemplate, Template};
-
     use pest::{consumes_to, parses_to};
-
-    fn parse_template(template: &'static str) -> Template {
-        template.parse::<CompiledTemplate>().unwrap().into()
-    }
 
     #[test]
     fn parse_structure() {
@@ -104,20 +98,5 @@ mod tests {
                 ])
             ]
         }
-    }
-
-    #[test]
-    fn parse_into_template() {
-        let template: Template = parse_template("foo");
-        assert_eq!("foo", template.render());
-    }
-
-    #[test]
-    fn parse_into_template_with_expression() {
-        let mut hello: Template = parse_template("Hello <name>!");
-        hello
-            .add("name", "World")
-            .expect("unexpectedly failed to add attribute");
-        assert_eq!("Hello World!", hello.render());
     }
 }
