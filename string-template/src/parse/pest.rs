@@ -63,10 +63,47 @@ impl TemplateParser {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use crate::{CompiledTemplate, Template};
+
+    use pest::{consumes_to, parses_to};
 
     fn parse_template(template: &'static str) -> Template {
         template.parse::<CompiledTemplate>().unwrap().into()
+    }
+
+    #[test]
+    fn parse_structure() {
+        parses_to! {
+            parser: TemplateParser,
+            input: r#"<greeting> <person.name>! <message()>"#,
+            rule: Rule::template_body,
+            tokens: [
+                template_body(0, 37, [
+                    literal(0, 0),
+                    expression(0, 10, [
+                        field_reference(1, 9, [
+                            identifier(1, 9)
+                        ])
+                    ]),
+                    literal(10, 11),
+                    expression(11, 24, [
+                        field_reference(12, 23, [
+                            identifier(12, 18),
+                            identifier(19, 23)
+                        ])
+                    ]),
+                    literal(24, 26),
+                    expression(26, 37, [
+                        template_include(27, 36, [
+                            identifier(27, 34)
+                        ])
+                    ]),
+                    literal(37, 37)
+                ])
+            ]
+        }
     }
 
     #[test]
