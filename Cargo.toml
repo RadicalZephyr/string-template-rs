@@ -3,4 +3,11 @@
 members = [
     "string-template",
     "string-template-macro",
+    "string-template-test",
+]
+
+default-members = [
+    "string-template",
+    "string-template-macro",
+    "string-template-test",
 ]

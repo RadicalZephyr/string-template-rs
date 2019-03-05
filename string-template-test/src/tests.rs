@@ -1,17 +1,8 @@
-use super::*;
+use super::TemplateTestExt;
 
 use serde_derive::Serialize;
 
-trait TemplateTestExt {
-    fn add_expect(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self;
-}
-
-impl TemplateTestExt for Template {
-    fn add_expect(&mut self, name: impl Into<String>, value: impl Serialize) -> &mut Self {
-        self.add(name, value)
-            .expect("unexpectedly failed to add attribute to template")
-    }
-}
+use string_template::{CompiledTemplate, Group, Template};
 
 fn parse_template(template: &'static str) -> Template {
     template

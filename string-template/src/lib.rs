@@ -22,9 +22,6 @@ mod parse;
 pub use crate::parse::pest::TemplateParser;
 pub use crate::parse::syn::{Group as StaticGroup, GroupBody};
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
     Literal(String),

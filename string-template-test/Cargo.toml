@@ -1,0 +1,10 @@
+[package]
+name = "string-template-test"
+version = "0.1.0"
+authors = ["Geoff Shannon <geoffpshannon@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+serde = "1.0"
+serde_derive = "1.0"
+string-template = { path = "../string-template" }
