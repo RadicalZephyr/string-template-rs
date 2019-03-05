@@ -9,5 +9,8 @@ string-template = { version = "0.1", path = "../string-template" }
 quote = "0.6"
 syn = "0.15"
 
+[dev-dependencies]
+string-template-test = { path = "../string-template-test" }
+
 [lib]
 proc-macro = true

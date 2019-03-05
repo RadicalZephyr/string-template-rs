@@ -1,10 +1,12 @@
 use string_template::{Group, Template};
 use string_template_macro::st_group;
+use string_template_test::TemplateTestExt as _;
 
 st_group! {
     static ref literal_group {
         a() ::= "foo"
         b() ::= r#"bar "things" { () } () baz => "#
+        c(x) ::= "<x>"
     }
 }
 
@@ -36,4 +38,11 @@ fn use_static_methods() {
         r#"bar "things" { () } () baz => "#,
         format!("{}", b.render())
     );
+}
+
+#[test]
+fn render_attributes() {
+    let mut c = literal_group.c();
+    c.add_expect("x", "Things");
+    assert_eq!("Things", c.render());
 }
