@@ -5,6 +5,7 @@ authors = ["Geoff Shannon <geoffpshannon@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+proc-macro2 = "0.4"
 string-template = { version = "0.1", path = "../string-template" }
 quote = "0.6"
 syn = "0.15"

@@ -39,7 +39,6 @@ impl Context {
         match self.data {
             Json::Null => {
                 mem::replace(self, new_value);
-                ()
             }
 
             Json::Array(ref mut list) => list.push(new_value.into_inner()),

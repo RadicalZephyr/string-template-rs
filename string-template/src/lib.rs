@@ -20,7 +20,7 @@ pub use crate::interpreter::Interpreter;
 
 mod parse;
 pub use crate::parse::pest::TemplateParser;
-pub use crate::parse::syn::{Group as StaticGroup, GroupBody};
+pub use crate::parse::syn::{AsDynamicTemplate, Group as StaticGroup, GroupBody};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {

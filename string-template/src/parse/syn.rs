@@ -1,5 +1,7 @@
 use std::{cmp, fmt, str};
 
+use proc_macro2::TokenStream;
+
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
@@ -35,6 +37,15 @@ impl Group {
             group_name,
             brace_token: Default::default(),
             group: Default::default(),
+        }
+    }
+
+    pub fn with_group(visibility: Visibility, group_name: Ident, group: GroupBody) -> Group {
+        Group {
+            visibility,
+            group_name,
+            brace_token: Default::default(),
+            group,
         }
     }
 
@@ -76,7 +87,7 @@ impl Parse for Group {
 }
 
 impl ToTokens for Group {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let ty = quote! { ::string_template::Group };
         let templates = &self.group;
         let visibility = &self.visibility;
@@ -137,7 +148,7 @@ impl GroupBody {
             .collect()
     }
 
-    pub fn template_access_fns(&self) -> proc_macro2::TokenStream {
+    pub fn template_access_fns(&self) -> TokenStream {
         let template_access_fns = self
             .templates
             .iter()
@@ -184,7 +195,7 @@ impl Parse for GroupBody {
 }
 
 impl ToTokens for GroupBody {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let templates = &self.templates;
         let expanded = quote! { #( #templates )* };
         tokens.extend(expanded);
@@ -200,11 +211,11 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn access_fn(&self, vis: &Visibility) -> proc_macro2::TokenStream {
+    pub fn access_fn(&self, vis: &Visibility) -> TokenStream {
         let name = &self.name;
         let name_str = name.to_string();
         quote! {
-            #vis fn #name(&self) -> Template {
+            #vis fn #name(&self) -> ::string_template::Template {
                 self.get(#name_str).unwrap()
             }
         }
@@ -247,7 +258,7 @@ impl Parse for Template {
 }
 
 impl ToTokens for Template {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = self.name.to_string();
         let template_body = &self.template_body.to_string();
         let compiled_template = &self.template_body;
@@ -310,7 +321,7 @@ impl Parse for TemplateBody {
 }
 
 impl ToTokens for TemplateBody {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let expressions = &self.expressions;
         tokens.extend(quote! {
             vec![
@@ -321,7 +332,7 @@ impl ToTokens for TemplateBody {
 }
 
 impl ToTokens for Expr {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let expanded = match self {
             Expr::Literal(content) => {
                 quote! { ::string_template::Expr::Literal(#content.to_string()) }
@@ -342,6 +353,45 @@ impl ToTokens for Expr {
             }
         };
         tokens.extend(expanded);
+    }
+}
+
+pub trait AsDynamicTemplate {
+    fn as_dynamic_template(&self) -> TokenStream;
+}
+
+impl AsDynamicTemplate for Group {
+    fn as_dynamic_template(&self) -> TokenStream {
+        let template_body = self.group.as_dynamic_template();
+        quote! { ::string_template_test::parse_group( #template_body ) }
+    }
+}
+
+impl AsDynamicTemplate for GroupBody {
+    fn as_dynamic_template(&self) -> TokenStream {
+        let template_str: String = self
+            .templates
+            .iter()
+            .map(Template::as_dynamic_template)
+            .map(|tokens| format!("{}\n", tokens))
+            .collect();
+        quote! { #template_str }
+    }
+}
+
+impl AsDynamicTemplate for Template {
+    fn as_dynamic_template(&self) -> TokenStream {
+        let name = &self.name;
+        let formal_args = &self.formal_args;
+        let template_body = self.template_body.as_dynamic_template();
+        quote! { #name ( #( #formal_args ),* ) ::= #template_body }
+    }
+}
+
+impl AsDynamicTemplate for TemplateBody {
+    fn as_dynamic_template(&self) -> TokenStream {
+        let literal = &self.literal;
+        quote! { #literal }
     }
 }
 

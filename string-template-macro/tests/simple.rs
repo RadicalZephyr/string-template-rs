@@ -1,19 +1,11 @@
-use string_template::{Group, Template};
-use string_template_macro::st_group;
-use string_template_test::TemplateTestExt as _;
+use string_template_macro::{st_group, st_test};
+use string_template_test::{get_template, TemplateTestExt as _};
 
 st_group! {
     static ref literal_group {
         a() ::= "foo"
         b() ::= r#"bar "things" { () } () baz => "#
-        c(x) ::= "<x>"
     }
-}
-
-fn get_template(group: &Group, name: &'static str) -> Template {
-    group
-        .get(name)
-        .expect(&format!("unexpectedly failed to find template {}", name))
 }
 
 #[test]
@@ -40,9 +32,37 @@ fn use_static_methods() {
     );
 }
 
+st_group! {
+    static ref attribute_group {
+        c(x) ::= "<x>"
+        d(x,y) ::= "<y><x>"
+    }
+}
+
 #[test]
 fn render_attributes() {
-    let mut c = literal_group.c();
+    let mut c = attribute_group.c();
     c.add_expect("x", "Things");
     assert_eq!("Things", c.render());
+}
+
+#[test]
+fn render_multiple_attributes() {
+    let mut d = attribute_group.d();
+    d.add_expect("x", "Moe");
+    d.add_expect("y", "Curly");
+    assert_eq!("CurlyMoe", d.render());
+}
+
+st_test! {
+    test_name: chained_attributes,
+    render_root: d,
+    template_group: {
+        d(x,y) ::= "<y>:<x>"
+    },
+    attributes: {
+        "x": "Moe",
+        "y": "Curly",
+    },
+    expected: "Curly:Moe",
 }
