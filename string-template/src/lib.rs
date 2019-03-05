@@ -86,9 +86,9 @@ impl Attributes {
 
     pub fn get(&self, name: impl AsRef<str>) -> &Context {
         lazy_static! {
-            static ref null_context: Context = Context::null();
+            static ref NULL_CONTEXT: Context = Context::null();
         }
-        self.0.get(name.as_ref()).unwrap_or(&null_context)
+        self.0.get(name.as_ref()).unwrap_or(&NULL_CONTEXT)
     }
 }
 
