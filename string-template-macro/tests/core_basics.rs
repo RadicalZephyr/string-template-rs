@@ -90,3 +90,27 @@ st_test! {
     },
     expected: "1: John",
 }
+
+macro_rules! map(
+    { $($key:expr => $value:expr),+ } => {
+        {
+            let mut m = ::std::collections::HashMap::new();
+            $(
+                m.insert($key, $value);
+            )+
+                m
+        }
+    };
+);
+
+st_test! {
+    test_name: property_with_no_attribute,
+    render_root: t,
+    template_group: {
+        t(foo, ick) ::= "<foo.a>: <ick>"
+    },
+    attributes: {
+        "foo": { map! {"a" => "b"} },
+    },
+    expected: "b: ",
+}
