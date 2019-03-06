@@ -8,9 +8,11 @@ edition = "2018"
 proc-macro2 = "0.4"
 string-template = { version = "0.1", path = "../string-template" }
 quote = "0.6"
-syn = "0.15"
+syn = { version = "0.15", features = ["full"]}
 
 [dev-dependencies]
+serde = "1.0"
+serde_derive = "1.0"
 string-template-test = { path = "../string-template-test" }
 
 [lib]

@@ -1,3 +1,5 @@
+use serde_derive::Serialize;
+
 use string_template_macro::st_test;
 
 st_test! {
@@ -8,6 +10,16 @@ st_test! {
     },
     attributes: {},
     expected: "hi !"
+}
+
+st_test! {
+    test_name: literal_template,
+    render_root: t,
+    template_group: {
+        t() ::= r#"bar "things" { () } () baz => "#
+    },
+    attributes: {},
+    expected: r#"bar "things" { () } () baz => "#
 }
 
 st_test! {
@@ -46,4 +58,35 @@ st_test! {
         "names": "Tom",
     },
     expected: "hi TerTom!"
+}
+
+st_test! {
+    test_name: list_attribute,
+    render_root: t,
+    template_group: {
+        t(names) ::= "hi <names>!"
+    },
+    attributes: {
+        "names": { vec!["Ter", "Tom"] },
+        "names": "Sumana",
+    },
+    expected: "hi TerTomSumana!"
+}
+
+#[derive(Serialize)]
+struct User {
+    id: u8,
+    name: &'static str,
+}
+
+st_test! {
+    test_name: attribute_properties,
+    render_root: t,
+    template_group: {
+        t(user) ::= "<user.id>: <user.name>"
+    },
+    attributes: {
+        "user": { User { id: 1, name: "John" } },
+    },
+    expected: "1: John",
 }

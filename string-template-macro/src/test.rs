@@ -5,14 +5,14 @@ use quote::{quote, quote_spanned};
 
 use syn::parse::{Parse, ParseBuffer, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{braced, token, Ident, Lit, LitStr, Token, Visibility};
+use syn::{braced, token, Expr, Ident, LitStr, Token, Visibility};
 
 pub struct Test {
     test_name: Ident,
     render_root: Ident,
     template_group: GroupBody,
     template_group_brace: token::Brace,
-    attributes: Punctuated<(LitStr, Lit), Token![,]>,
+    attributes: Punctuated<(LitStr, Expr), Token![,]>,
     attributes_brace: token::Brace,
     expected_value: LitStr,
 }
@@ -25,10 +25,10 @@ mod kw {
     syn::custom_keyword!(test_name);
 }
 
-fn parse_attribute_pair(input: ParseStream) -> syn::Result<(LitStr, Lit)> {
+fn parse_attribute_pair(input: ParseStream) -> syn::Result<(LitStr, Expr)> {
     let key: LitStr = input.parse()?;
     input.parse::<Token![:]>()?;
-    let value: Lit = input.parse()?;
+    let value: Expr = input.parse()?;
     Ok((key, value))
 }
 
@@ -82,7 +82,7 @@ fn concat_ident(ident: &Ident, suffix: impl AsRef<str>) -> Ident {
 
 fn quote_attributes(
     render_root: &Ident,
-    attributes: &Punctuated<(LitStr, Lit), Token![,]>,
+    attributes: &Punctuated<(LitStr, Expr), Token![,]>,
 ) -> Vec<proc_macro2::TokenStream> {
     attributes
         .iter()

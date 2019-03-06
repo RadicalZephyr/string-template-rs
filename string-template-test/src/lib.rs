@@ -1,5 +1,5 @@
 use serde::Serialize;
-use string_template::{Group, Template};
+use string_template::{CompiledTemplate, Group, Template};
 
 #[cfg(test)]
 mod tests;
@@ -19,6 +19,13 @@ pub fn get_template(group: &Group, name: &'static str) -> Template {
     group
         .get(name)
         .unwrap_or_else(|| panic!("unexpectedly failed to find template {}", name))
+}
+
+pub fn parse_template(template: &'static str) -> Template {
+    template
+        .parse::<CompiledTemplate>()
+        .expect("unexpectedly failed to parse template")
+        .into()
 }
 
 pub fn parse_group(group: &'static str) -> Group {
