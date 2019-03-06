@@ -2,7 +2,7 @@ use super::TemplateTestExt;
 
 use serde_derive::Serialize;
 
-use string_template::{CompiledTemplate, Group, Template};
+use string_template::{CompiledTemplate, Error, Group, Template};
 
 fn parse_template(template: &'static str) -> Template {
     template
@@ -14,6 +14,7 @@ fn parse_template(template: &'static str) -> Template {
 #[test]
 fn renders_hello_world() {
     let mut hello = parse_template("Hello, <name>!");
+    println!("{:?}", hello);
     hello.add_expect("name", "World");
     assert_eq!("Hello, World!", format!("{}", hello.render()));
 }
@@ -63,6 +64,16 @@ fn renders_nested_attributes() {
     let john = Person { name: "John" };
     hello.add_expect("person", &john);
     assert_eq!("Hello, John!", format!("{}", hello.render()));
+}
+
+#[test]
+fn errors_setting_unknown_attribute() {
+    let group = parse_group(r#"t() ::= "hi <name>""#);
+    let mut template = get_template(&group, "t");
+    assert_eq!(
+        Err(Error::NoSuchAttribute("name".into())),
+        template.add("name", "John")
+    );
 }
 
 #[test]

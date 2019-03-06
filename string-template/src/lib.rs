@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use indexmap::IndexSet;
+
 use lazy_static::lazy_static;
 
 use serde::Serialize;
@@ -46,6 +48,7 @@ pub struct CompiledTemplate {
     // have meaning to try and say that, since if this vec or an item
     // in it was moved outside of this struct then the lifetimes do
     // matter.
+    formal_arguments: Option<IndexSet<String>>,
     expressions: Vec<Expr>,
 }
 
@@ -53,7 +56,29 @@ impl CompiledTemplate {
     pub fn new(template: impl Into<String>, expressions: Vec<Expr>) -> CompiledTemplate {
         CompiledTemplate {
             template: template.into(),
+            formal_arguments: None,
             expressions,
+        }
+    }
+
+    pub fn with_args(
+        template: impl Into<String>,
+        formal_arguments: impl IntoIterator<Item = String>,
+        expressions: Vec<Expr>,
+    ) -> CompiledTemplate {
+        CompiledTemplate {
+            template: template.into(),
+            formal_arguments: Some(formal_arguments.into_iter().collect()),
+            expressions,
+        }
+    }
+
+    pub fn assert_is_argument(&self, arg_name: impl AsRef<str>) -> Result<(), Error> {
+        let arg_name = arg_name.as_ref();
+        match &self.formal_arguments {
+            Some(formal_arguments) if formal_arguments.contains(arg_name) => Ok(()),
+            Some(_) => Err(Error::NoSuchAttribute(arg_name.to_string())),
+            None => Ok(()),
         }
     }
 }
@@ -151,6 +176,8 @@ impl Template {
         name: impl Into<String>,
         value: impl Serialize,
     ) -> Result<&mut Self, Error> {
+        let name = name.into();
+        self.imp.assert_is_argument(&name)?;
         self.attributes.insert(name, Context::wraps(value)?);
         Ok(self)
     }

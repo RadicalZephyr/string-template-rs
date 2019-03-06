@@ -144,7 +144,7 @@ impl GroupBody {
     pub fn templates(self) -> TemplateMap {
         self.templates
             .into_iter()
-            .map(|st| (st.name.to_string(), st.template_body.into()))
+            .map(|st| (st.name.to_string(), st.into()))
             .collect()
     }
 
@@ -236,6 +236,25 @@ impl cmp::PartialEq for Template {
     }
 }
 
+impl From<Template> for CompiledTemplate {
+    fn from(body: Template) -> CompiledTemplate {
+        let Template {
+            formal_args,
+            template_body,
+            ..
+        } = body;
+        let TemplateBody {
+            literal,
+            expressions,
+        } = template_body;
+        CompiledTemplate::with_args(
+            literal.value(),
+            formal_args.iter().map(Ident::to_string),
+            expressions,
+        )
+    }
+}
+
 impl Parse for Template {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
@@ -261,12 +280,14 @@ impl ToTokens for Template {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = self.name.to_string();
         let template_body = &self.template_body.to_string();
+        let formal_args = self.formal_args.iter().map(Ident::to_string);
         let compiled_template = &self.template_body;
         let expanded = quote! {
             templates.insert(
                 #name.to_string(),
-                ::string_template::CompiledTemplate::new(
+                ::string_template::CompiledTemplate::with_args(
                     #template_body,
+                    vec![ #( #formal_args.to_string() ),* ],
                     #compiled_template
                 )
             );
@@ -296,16 +317,6 @@ impl fmt::Debug for TemplateBody {
 impl cmp::PartialEq for TemplateBody {
     fn eq(&self, _other: &Self) -> bool {
         false
-    }
-}
-
-impl From<TemplateBody> for CompiledTemplate {
-    fn from(body: TemplateBody) -> CompiledTemplate {
-        let TemplateBody {
-            literal,
-            expressions,
-        } = body;
-        CompiledTemplate::new(literal.value(), expressions)
     }
 }
 
