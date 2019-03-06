@@ -1,6 +1,7 @@
 use serde_derive::Serialize;
 
 use string_template_macro::st_test;
+use string_template_test::parse_template;
 
 st_test! {
     test_name: null_attribute,
@@ -113,4 +114,20 @@ st_test! {
         "foo": { map! {"a" => "b"} },
     },
     expected: "b: ",
+}
+
+st_test! {
+    test_name: template_prop,
+    render_root: t,
+    template_group: {
+        t(t) ::= "<t.x>"
+    },
+    attributes: {
+        "t": {
+            let mut t = parse_template("<x>");
+            t.add_expect("x", "Ter");
+            t
+        },
+    },
+    expected: "Ter",
 }

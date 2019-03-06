@@ -9,7 +9,7 @@ use indexmap::IndexSet;
 
 use lazy_static::lazy_static;
 
-use serde::Serialize;
+use serde::ser::{Serialize, Serializer};
 
 mod context;
 pub use crate::context::Context;
@@ -112,6 +112,28 @@ impl Attributes {
         }
         self.0.get(name.as_ref()).unwrap_or(&NULL_CONTEXT)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<'a> IntoIterator for &'a Attributes {
+    type Item = (&'a String, &'a Context);
+    type IntoIter = std::collections::hash_map::Iter<'a, String, Context>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.0).into_iter()
+    }
+}
+
+impl IntoIterator for Attributes {
+    type Item = (String, Context);
+    type IntoIter = std::collections::hash_map::IntoIter<String, Context>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
 }
 
 type TemplateMap = HashMap<String, CompiledTemplate>;
@@ -187,6 +209,20 @@ impl Template {
         let group = self.group.clone();
         let interpreter = Interpreter::new(group);
         interpreter.render(&template, &self.attributes)
+    }
+}
+
+impl Serialize for Template {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(self.attributes.len()))?;
+        for (k, v) in &self.attributes {
+            map.serialize_entry(k, v.borrow())?;
+        }
+        map.end()
     }
 }
 

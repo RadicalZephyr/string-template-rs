@@ -51,6 +51,10 @@ impl Context {
         }
     }
 
+    pub fn borrow(&self) -> &Json {
+        &self.data
+    }
+
     pub fn into_inner(self) -> Json {
         self.data
     }
