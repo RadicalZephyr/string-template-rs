@@ -360,7 +360,7 @@ impl ToTokens for Expr {
                 }
             }
             Expr::Include(name, arg_names) => {
-                quote! { ::string_template::Expr::Include(#name, vec![ #( #arg_names ),* ]) }
+                quote! { ::string_template::Expr::Include(#name.to_string(), vec![ #( #arg_names ),* ]) }
             }
         };
         tokens.extend(expanded);

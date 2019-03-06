@@ -141,3 +141,14 @@ st_test! {
     attributes: {},
     expected: ": ",
 }
+
+st_test! {
+    test_name: include,
+    render_root: t,
+    template_group: {
+        t() ::= "load <temp()>;"
+        temp() ::= "kewl\ndaddy"
+    },
+    attributes: {},
+    expected: "load kewl\ndaddy;",
+}

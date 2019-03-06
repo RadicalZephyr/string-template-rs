@@ -1,6 +1,6 @@
 template_body = ${ literal ~ ( expression ~ literal )* }
 literal = @{ literal_char* }
-literal_char = _{ ' '..';' | '='..'~' }
+literal_char = _{ "\r" | "\n" | ' '..';' | '='..'~' }
 
 expression = !{ "<" ~ ( template_include | field_reference ) ~ ">" }
 field_reference = { identifier ~ ( "." ~ identifier )* }
