@@ -117,7 +117,7 @@ st_test! {
 }
 
 st_test! {
-    test_name: template_prop,
+    test_name: template_property,
     render_root: t,
     template_group: {
         t(t) ::= "<t.x>"
@@ -130,4 +130,14 @@ st_test! {
         },
     },
     expected: "Ter",
+}
+
+st_test! {
+    test_name: null_attribute_property,
+    render_root: t,
+    template_group: {
+        t(u) ::= "<u.id>: <u.name>"
+    },
+    attributes: {},
+    expected: ": ",
 }
