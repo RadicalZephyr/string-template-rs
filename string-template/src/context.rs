@@ -61,11 +61,11 @@ impl Context {
 }
 
 impl Context {
-    pub fn navigate(&self, path: &[String]) -> Context {
+    pub fn navigate(&self, path: &[&str]) -> Context {
         let mut node = &self.data;
         for segment in path {
             match node {
-                Json::Object(map) => node = map.get(segment).unwrap_or(&Json::Null),
+                Json::Object(map) => node = map.get::<str>(*segment).unwrap_or(&Json::Null),
                 _ => break,
             }
         }

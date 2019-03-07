@@ -19,7 +19,8 @@ impl Interpreter {
                     out.push_str(&attribute.to_string());
                 }
                 Expr::AttributePath(attribute_name, path) => {
-                    let rendered = attributes.get(attribute_name).navigate(path);
+                    let path: Vec<&str> = path.iter().map(AsRef::as_ref).collect();
+                    let rendered = attributes.get(attribute_name).navigate(&path);
                     out.push_str(&rendered.to_string());
                 }
                 Expr::Include(name, _arg_names) => {
