@@ -5,7 +5,7 @@ use quote::{quote, quote_spanned};
 
 use syn::parse::{Parse, ParseBuffer, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{braced, token, Expr, Ident, LitStr, Token, Visibility};
+use syn::{braced, token, Expr, Ident, LitBool, LitStr, Token, Visibility};
 
 pub struct Test {
     test_name: Ident,
@@ -15,10 +15,26 @@ pub struct Test {
     attributes: Punctuated<(LitStr, Expr), Token![,]>,
     attributes_brace: token::Brace,
     expected_value: LitStr,
+    debug: bool,
+}
+
+impl Test {
+    fn make_debug_print(&self, template_name: &Ident) -> proc_macro2::TokenStream {
+        let template_temp = concat_ident(template_name, "_temp");
+        if self.debug {
+            quote! {
+                let #template_temp = &#template_name;
+                println!("{:?}", #template_temp);
+            }
+        } else {
+            quote! {}
+        }
+    }
 }
 
 mod kw {
     syn::custom_keyword!(attributes);
+    syn::custom_keyword!(debug);
     syn::custom_keyword!(expected);
     syn::custom_keyword!(render_root);
     syn::custom_keyword!(template_group);
@@ -63,6 +79,13 @@ impl Parse for Test {
         let expected_value = input.parse()?;
         input.parse::<Token![,]>().ok();
 
+        let mut debug = false;
+        if let Ok(_) = input.parse::<kw::debug>() {
+            input.parse::<Token![:]>()?;
+            debug = input.parse::<LitBool>()?.value;
+            input.parse::<Token![,]>().ok();
+        }
+
         let test = Test {
             test_name,
             render_root,
@@ -71,6 +94,7 @@ impl Parse for Test {
             attributes,
             attributes_brace,
             expected_value,
+            debug,
         };
         Ok(test)
     }
@@ -109,6 +133,8 @@ impl ToTokens for Test {
         let dynamic_template = template_group.as_dynamic_template();
         let expected = &self.expected_value;
 
+        // let static_debug = self.make_debug_print(&static_template_name);
+        let dynamic_debug = self.make_debug_print(&dynamic_template_name);
         let dynamic_template_let = quote_spanned! {
             self.template_group_brace.span =>
             let #dynamic_template_name = #dynamic_template;
@@ -128,6 +154,7 @@ impl ToTokens for Test {
             fn #dynamic_test_name() {
                 use ::string_template_test::TemplateTestExt as _;
                 #dynamic_template_let
+                #dynamic_debug
                 let mut #render_root = ::string_template_test::get_template(&#dynamic_template_name,
                                                     stringify!( #render_root ));
                 #attributes2
