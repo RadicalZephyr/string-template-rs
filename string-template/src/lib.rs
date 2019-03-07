@@ -1,7 +1,9 @@
 #![recursion_limit = "128"]
 
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -146,11 +148,14 @@ impl Group {
         Group::default()
     }
 
-    pub fn get(&self, template_name: impl AsRef<str>) -> Option<Template> {
+    pub fn get<Q: ?Sized>(&self, template_name: &Q) -> Option<Template>
+    where
+        String: Borrow<Q>,
+        Q: Hash + Eq,
+    {
         let group = self.clone();
-        self.0
-            .borrow()
-            .get(template_name.as_ref())
+        RefCell::borrow(&*self.0)
+            .get(template_name)
             .cloned()
             .map(move |imp| Template::new(group, imp))
     }
